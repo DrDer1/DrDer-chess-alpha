@@ -391,9 +391,7 @@ function createWorker(playerName) {
 function handleWorkerError(playerName, workerGeneration) {
     var w = state.workers[playerName];
     if (!w) return;
-    // Validate generation - reject stale errors
     if (workerGeneration !== undefined && w.generation !== workerGeneration) return;
-    // Allow recovery during all phases including initialization (before match starts)
     if (state.isMatchEnding) return;
     if (w.recovering) return;
     w.restartCount = (w.restartCount || 0) + 1;
@@ -550,7 +548,6 @@ function handleBestmoveMessage(search, msg, playerName) {
         if (state.isMatchRunning && !state.isMatchEnding && !state.isTransitioning) makeNextMove();
         return;
     }
-    // Validate bestmove legality via simulation only (no actual move yet)
     if (!simulateMove(bestMove)) {
         invalidateCurrentSearch();
         if (state.isMatchRunning && !state.isMatchEnding && !state.isTransitioning) {
