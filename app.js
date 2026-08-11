@@ -32,30 +32,31 @@ function startSystem() {
     if (state.workers.alpha) { state.workers.alpha.terminate(); }
     if (state.workers.beta) { state.workers.beta.terminate(); }
 
-    var alphaPath = new URL(BASE_PATH + 'stockfish.alpha.js', window.location.href).href;
-    var betaPath = new URL(BASE_PATH + 'stockfish.beta.js', window.location.href).href;
+    state.workers.alpha = createWorker('alpha', BASE_PATH + 'stockfish.alpha.js');
+    state.workers.beta = createWorker('beta', BASE_PATH + 'stockfish.beta.js');
 
-    state.workers.alpha = createWorker('alpha', alphaPath);
-    state.workers.beta = createWorker('beta', betaPath);
-
-    setTimeout(function() {
-        if (state.workers.alpha.ready && state.workers.beta.ready) {
+    var checkReady = function() {
+        var a = state.workers.alpha && state.workers.alpha.ready;
+        var b = state.workers.beta && state.workers.beta.ready;
+        if (a && b) {
             startMatch();
         } else {
-            startMatch();
+            setTimeout(checkReady, 500);
         }
-    }, 5000);
+    };
+    setTimeout(checkReady, 2000);
 }
 
 function createWorker(name, path) {
     var worker = new Worker(path);
-
     worker.ready = false;
     worker.searching = false;
     worker.name = name;
 
     worker.onmessage = function(e) {
-        var msg = (typeof e.data === 'string') ? e.data : (e.data && e.data.data ? e.data.data : '');
+        var msg = e.data;
+        if (msg && typeof msg === 'object' && msg.data) msg = msg.data;
+        if (typeof msg !== 'string') return;
 
         if (msg.indexOf('readyok') !== -1) {
             worker.ready = true;
@@ -67,7 +68,7 @@ function createWorker(name, path) {
         }
     };
 
-    worker.onerror = function(error) {
+    worker.onerror = function() {
         worker.ready = false;
         worker.searching = false;
     };
@@ -75,7 +76,6 @@ function createWorker(name, path) {
     worker.postMessage('uci');
     worker.postMessage('setoption name MultiPV value 4');
     worker.postMessage('isready');
-
     return worker;
 }
 
@@ -88,7 +88,7 @@ function handleBestmove(playerName, msg) {
         if (state.currentGame && state.currentGame.game_over()) {
             endMatch();
         } else {
-            makeNextMove();
+            scheduleNextMove();
         }
         return;
     }
@@ -101,14 +101,17 @@ function handleBestmove(playerName, msg) {
             state.gameHistory.push(move);
             state.currentTurn = state.currentGame.turn();
             drawBoard();
-
             if (state.currentGame.game_over()) {
                 endMatch();
             } else {
                 scheduleNextMove();
             }
+        } else {
+            scheduleNextMove();
         }
-    } catch(e) {}
+    } catch(e) {
+        scheduleNextMove();
+    }
 }
 
 function scheduleNextMove() {
@@ -116,7 +119,7 @@ function scheduleNextMove() {
     state.nextMoveTimer = setTimeout(function() {
         state.nextMoveTimer = null;
         makeNextMove();
-    }, 200);
+    }, 300);
 }
 
 function makeNextMove() {
@@ -166,9 +169,7 @@ function startMatch() {
 function endMatch() {
     state.isMatchRunning = false;
     state.searchActive = false;
-
     if (state.nextMoveTimer) clearTimeout(state.nextMoveTimer);
-
     state.matchTransitionTimer = setTimeout(function() {
         state.matchTransitionTimer = null;
         startMatch();
