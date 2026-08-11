@@ -2,56 +2,36 @@
    DrDer Chess - Local AI vs AI Display
    ============================================ */
 
-const personalities = {
+var personalities = {
     alpha: {
-        name: 'ALPHA',
-        type: 'TACTICAL AI',
-        aggression: 0.95,
-        kingAttack: 0.98,
-        tacticalRisk: 0.85,
-        sacrifice: 0.80,
-        pieceActivity: 0.95,
-        defense: 0.40,
-        endgame: 0.60,
-        drawAvoidance: 0.98,
-        depth: 22,
-        movetime: 3000,
-        multiPV: 4,
-        threshold: 65
+        name: 'ALPHA', type: 'TACTICAL AI',
+        aggression: 0.95, kingAttack: 0.98, tacticalRisk: 0.85, sacrifice: 0.80,
+        pieceActivity: 0.95, defense: 0.40, endgame: 0.60, drawAvoidance: 0.98,
+        depth: 22, movetime: 3000, multiPV: 4, threshold: 65
     },
     beta: {
-        name: 'BETA',
-        type: 'STRATEGIC AI',
-        aggression: 0.55,
-        kingAttack: 0.60,
-        tacticalRisk: 0.40,
-        sacrifice: 0.20,
-        pieceActivity: 0.75,
-        defense: 0.98,
-        endgame: 0.98,
-        drawAvoidance: 0.75,
-        depth: 20,
-        movetime: 3000,
-        multiPV: 4,
-        threshold: 30
+        name: 'BETA', type: 'STRATEGIC AI',
+        aggression: 0.55, kingAttack: 0.60, tacticalRisk: 0.40, sacrifice: 0.20,
+        pieceActivity: 0.75, defense: 0.98, endgame: 0.98, drawAvoidance: 0.75,
+        depth: 20, movetime: 3000, multiPV: 4, threshold: 30
     }
 };
 
-const MAX_WORKER_RESTARTS = 5;
-const SEARCH_WATCHDOG_MARGIN = 3000;
-const MOVE_DELAY_MS = 200;
-const WORKER_RESTART_DELAY_MS = 1000;
-const WORKER_READY_POLL_MS = 500;
-const MATCH_TRANSITION_DELAY_MS = 500;
-const MAX_PERSONALITY_BONUS = 20;
-const DEBUG = true;
+var MAX_WORKER_RESTARTS = 5;
+var SEARCH_WATCHDOG_MARGIN = 3000;
+var MOVE_DELAY_MS = 200;
+var WORKER_RESTART_DELAY_MS = 1000;
+var WORKER_READY_POLL_MS = 500;
+var MATCH_TRANSITION_DELAY_MS = 500;
+var MAX_PERSONALITY_BONUS = 20;
+var DEBUG = true;
 
-const ENGINE_PATHS = {
+var ENGINE_PATHS = {
     alpha: './stockfish.alpha.js',
     beta: './stockfish.beta.js'
 };
 
-const state = {
+var state = {
     currentGame: null,
     gameHistory: [],
     alphaColor: 'w',
@@ -76,18 +56,27 @@ const state = {
     workersReadyCount: 0
 };
 
-function debugLog(tag, message) {
-    if (!DEBUG) return;
-    if (typeof console === 'undefined' || !console.log) return;
-    console.log('[DrDer][' + tag + '] ' + message);
+function debugLog(tag, msg) {
+    if (!DEBUG || typeof console === 'undefined') return;
+    console.log('[DrDer][' + tag + '] ' + msg);
+}
+
+// ============================================
+// تهيئة الرقعة الفارغة فوراً
+// ============================================
+function initEmptyBoard() {
+    state.currentGame = new Chess();
+    state.gameHistory = [];
+    state.currentTurn = 'w';
+    drawBoard();
 }
 
 // ============================================
 // INITIALIZATION
 // ============================================
-
 document.addEventListener('DOMContentLoaded', function() {
     debugLog('INIT', 'DOM ready');
+    initEmptyBoard();
     fullCleanup();
     initializeWorkers();
 });
@@ -103,15 +92,12 @@ function fullCleanup() {
     state.isTransitioning = false;
     state.searchActive = false;
     state.matchGeneration = (state.matchGeneration || 0) + 1;
-    state.boardCache.squares = null;
-    state.boardCache.container = null;
     state.workersReadyCount = 0;
 }
 
 // ============================================
 // TIMER MANAGEMENT
 // ============================================
-
 function cancelNextMoveTimer() { if (state.nextMoveTimer !== null) { clearTimeout(state.nextMoveTimer); state.nextMoveTimer = null; } }
 function cancelMatchTransitionTimer() { if (state.matchTransitionTimer !== null) { clearTimeout(state.matchTransitionTimer); state.matchTransitionTimer = null; } }
 function cancelWorkerRestartTimer() { if (state.workerRestartTimer !== null) { clearTimeout(state.workerRestartTimer); state.workerRestartTimer = null; } }
@@ -126,7 +112,6 @@ function scheduleNextMove(delay) {
 // ============================================
 // SEARCH WATCHDOG
 // ============================================
-
 function startSearchWatchdog(search, movetime, matchGen, workerGen) {
     cancelSearchWatchdog();
     if (!search || !search.id || !search.active) return;
@@ -138,7 +123,6 @@ function startSearchWatchdog(search, movetime, matchGen, workerGen) {
         var cs = state.pendingSearch;
         if (!cs || cs.id !== searchId || !cs.active || cs.completed || cs.moveApplied) return;
         if (state.workers[search.player] && state.workers[search.player].generation !== workerGen) return;
-        debugLog('WATCHDOG', 'Timeout: ' + searchId);
         handleSearchTimeout(cs, matchGen);
     }, timeoutMs);
 }
@@ -155,7 +139,6 @@ function handleSearchTimeout(search, matchGen) {
         var cs = state.pendingSearch;
         if (!cs || cs.id !== sid) return;
         if (cs.completed || cs.moveApplied) return;
-        debugLog('WATCHDOG', 'Force recovery: ' + pn);
         completeSearch(cs);
         invalidateCurrentSearch();
         if (state.isMatchRunning && !state.isMatchEnding && !state.isTransitioning) {
@@ -167,7 +150,6 @@ function handleSearchTimeout(search, matchGen) {
 // ============================================
 // WORKER MANAGEMENT
 // ============================================
-
 function getEnginePath(playerName) { return ENGINE_PATHS[playerName] || './stockfish.alpha.js'; }
 
 function initializeWorkers() {
@@ -177,7 +159,6 @@ function initializeWorkers() {
     state.workersReadyCount = 0;
     state.workers.alpha = createWorker('alpha');
     state.workers.beta = createWorker('beta');
-    debugLog('INIT', 'Workers created, waiting for readyok...');
 }
 
 function terminateWorker(playerName) {
@@ -192,7 +173,6 @@ function createWorker(playerName) {
     var w = state.workers[playerName];
     var gen = w.generation;
     var enginePath = getEnginePath(playerName);
-    debugLog('WORKER', 'Creating ' + playerName + ' gen ' + gen);
 
     var wc = '';
     wc += 'var sf=null,workerGen=' + gen + ',ready=false,it=null,activeSearchSeq=null;\n';
@@ -238,7 +218,7 @@ function createWorker(playerName) {
         if (e.data.type === 'engine') handleEngineMessage(playerName, e.data.data, gen);
         else if (e.data.type === 'error') { debugLog('WORKER', 'Error ' + playerName + ': ' + e.data.data); }
     };
-    instance.onerror = function(err) { debugLog('WORKER', 'Onerror ' + playerName); };
+    instance.onerror = function() { debugLog('WORKER', 'Onerror ' + playerName); };
     instance.postMessage({ type: 'init', multiPV: personalities[playerName].multiPV });
     return state.workers[playerName];
 }
@@ -250,7 +230,6 @@ function handleWorkerError(playerName, workerGeneration) {
     if (state.isMatchEnding || state.isTransitioning) return;
     if (w.recovering) return;
     w.restartCount = (w.restartCount || 0) + 1;
-    debugLog('WORKER', 'Crash: ' + playerName + ' #' + w.restartCount);
     if (w.restartCount > MAX_WORKER_RESTARTS) return;
     w.recovering = true;
     invalidateCurrentSearch();
@@ -271,7 +250,6 @@ function handleWorkerError(playerName, workerGeneration) {
 // ============================================
 // SEARCH MANAGEMENT
 // ============================================
-
 function invalidateCurrentSearch() {
     cancelSearchWatchdog();
     if (state.pendingSearch) { state.pendingSearch.active = false; state.pendingSearch.completed = true; state.pendingSearch = null; }
@@ -322,7 +300,6 @@ function completeSearch(search) {
 // ============================================
 // ENGINE MESSAGE HANDLING
 // ============================================
-
 function handleEngineMessage(playerName, msg, workerGeneration) {
     var msgStr = null;
     if (typeof msg === 'string') msgStr = msg;
@@ -337,7 +314,6 @@ function handleEngineMessage(playerName, msg, workerGeneration) {
     if (msgStr === 'readyok' || msgStr.indexOf('readyok') !== -1) {
         w.status = 'ready';
         state.workersReadyCount++;
-        debugLog('ENGINE', playerName + ' ready (' + state.workersReadyCount + '/2)');
         if (state.workersReadyCount >= 2 && !state.isMatchRunning && !state.isTransitioning) {
             startMatch();
         }
@@ -428,7 +404,6 @@ function isGameFinished() { return state.currentGame ? state.currentGame.game_ov
 // ============================================
 // MOVE SELECTION
 // ============================================
-
 function getBestCandidateFromSearch(search) {
     if (!search.candidates) return null;
     for (var i = 0; i < search.candidates.length; i++) { if (search.candidates[i] && search.candidates[i].rank === 1) return search.candidates[i]; }
@@ -525,7 +500,6 @@ function getGamePhase() {
 // ============================================
 // MOVE EXECUTION
 // ============================================
-
 function executeMove(playerName, moveStr) {
     var search = state.pendingSearch;
     if (!isValidSearchForMove(search, playerName)) return;
@@ -546,10 +520,8 @@ function executeMove(playerName, moveStr) {
 // ============================================
 // MATCH LOGIC
 // ============================================
-
 function startMatch() {
     if (state.isTransitioning) return;
-    debugLog('MATCH', 'Starting new match');
     invalidateCurrentSearch(); cancelNextMoveTimer(); cancelMatchTransitionTimer(); cancelSearchWatchdog(); cancelWorkerRestartTimer();
     state.isMatchRunning = true; state.isMatchEnding = false; state.matchGeneration++;
     state.currentGame = new Chess(); state.gameHistory = []; state.currentTurn = 'w'; state.isTransitioning = false;
@@ -557,7 +529,6 @@ function startMatch() {
     state.colorSwap = !state.colorSwap;
     state.alphaColor = state.colorSwap ? 'b' : 'w';
     state.betaColor = state.colorSwap ? 'w' : 'b';
-    // تحديث أسماء اللاعبين في الواجهة
     var wEl = document.getElementById('whitePlayer');
     var bEl = document.getElementById('blackPlayer');
     if (wEl) wEl.textContent = state.alphaColor === 'w' ? 'Alpha' : 'Beta';
@@ -592,7 +563,6 @@ function endMatch() {
     invalidateCurrentSearch(); cancelNextMoveTimer(); cancelSearchWatchdog(); cancelWorkerRestartTimer();
     if (state.workers.alpha.instance) { try { state.workers.alpha.instance.postMessage({ type: 'stop' }); } catch(e) {} }
     if (state.workers.beta.instance) { try { state.workers.beta.instance.postMessage({ type: 'stop' }); } catch(e) {} }
-    debugLog('MATCH', 'Match ended');
     cancelMatchTransitionTimer();
     state.matchTransitionTimer = setTimeout(function() {
         state.matchTransitionTimer = null;
@@ -605,34 +575,25 @@ function endMatch() {
 // ============================================
 // UI RENDERING
 // ============================================
-
 function drawBoard() {
     if (!state.currentGame) return;
-    var board = state.currentGame.board(), cb = document.getElementById('chessboard'); if (!cb) return;
+    var board = state.currentGame.board(), cb = document.getElementById('chessboard');
+    if (!cb) return;
     var ic = { w: { p: '\u2659', n: '\u2658', b: '\u2657', r: '\u2656', q: '\u2655', k: '\u2654' }, b: { p: '\u265F', n: '\u265E', b: '\u265D', r: '\u265C', q: '\u265B', k: '\u265A' } };
-    if (state.boardCache.container === cb && state.boardCache.squares && state.boardCache.squares.length === 64) {
-        var sqs = state.boardCache.squares, idx = 0;
-        for (var r = 0; r < 8; r++) {
-            for (var c = 0; c < 8; c++) {
-                var sq = sqs[idx], p = board[r][c], cp = sq.querySelector('.piece');
-                if (p) {
-                    var ec = ic[p.color][p.type];
-                    if (!cp || cp.textContent !== ec) { if (cp) sq.removeChild(cp); var pc = document.createElement('div'); pc.className = 'piece ' + (p.color === 'w' ? 'white' : 'black'); pc.textContent = ec; sq.appendChild(pc); }
-                } else { if (cp) sq.removeChild(cp); }
-                idx++;
+    cb.innerHTML = '';
+    for (var r = 0; r < 8; r++) {
+        for (var c = 0; c < 8; c++) {
+            var sq = document.createElement('div');
+            sq.className = 'square ' + ((r + c) % 2 === 0 ? 'light' : 'dark');
+            var p = board[r][c];
+            if (p) {
+                var pc = document.createElement('div');
+                pc.className = 'piece ' + (p.color === 'w' ? 'white' : 'black');
+                pc.textContent = ic[p.color][p.type];
+                sq.appendChild(pc);
             }
+            cb.appendChild(sq);
         }
-    } else {
-        cb.innerHTML = ''; var sqs = [];
-        for (var r = 0; r < 8; r++) {
-            for (var c = 0; c < 8; c++) {
-                var sq = document.createElement('div'); sq.className = 'square ' + ((r + c) % 2 === 0 ? 'light' : 'dark');
-                var p = board[r][c];
-                if (p) { var pc = document.createElement('div'); pc.className = 'piece ' + (p.color === 'w' ? 'white' : 'black'); pc.textContent = ic[p.color][p.type]; sq.appendChild(pc); }
-                cb.appendChild(sq); sqs.push(sq);
-            }
-        }
-        state.boardCache.container = cb; state.boardCache.squares = sqs;
     }
 }
 
