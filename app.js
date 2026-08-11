@@ -1,5 +1,5 @@
 /* ============================================
-   DrDer Chess Alpha - Advanced Broadcast System v3.8
+   DrDer Chess - Local AI vs AI Display
    ============================================ */
 
 // ============================================
@@ -50,11 +50,7 @@ const SEARCH_WATCHDOG_MARGIN = 3000;
 const MOVE_DELAY_MS = 300;
 const WORKER_RESTART_DELAY_MS = 1000;
 const WORKER_READY_POLL_MS = 500;
-const COUNTDOWN_SECONDS = 3;
-const COUNTDOWN_INTERVAL_MS = 1000;
-const MAX_OPENING_ATTEMPTS = 5;
-const MAX_USED_OPENINGS = 48;
-const MAX_MOVES_DISPLAY = 30;
+const MATCH_TRANSITION_DELAY_MS = 500;
 const WORKER_INIT_TIMEOUT_MS = 15000;
 const MAX_PERSONALITY_BONUS = 20;
 const DEBUG = true;
@@ -73,11 +69,6 @@ const ENGINE_PATHS = {
 // ============================================
 
 const state = {
-    version: 3.8,
-    currentMatch: 1,
-    alphaWins: 0,
-    betaWins: 0,
-    draws: 0,
     currentGame: null,
     gameHistory: [],
     alphaColor: 'w',
@@ -87,20 +78,19 @@ const state = {
     isMatchEnding: false,
     matchGeneration: 0,
     workers: {
-        alpha: { instance: null, status: 'idle', url: null, restartCount: 0, generation: 0, recovering: false },
-        beta: { instance: null, status: 'idle', url: null, restartCount: 0, generation: 0, recovering: false }
+        alpha: { instance: null, status: 'idle', url: null, restartCount: 0, generation: 0, recovering: false, searchSeq: 0 },
+        beta: { instance: null, status: 'idle', url: null, restartCount: 0, generation: 0, recovering: false, searchSeq: 0 }
     },
     pendingSearch: null,
     searchActive: false,
-    usedOpenings: [],
-    lastEvaluation: '0.00',
     isTransitioning: false,
     nextMoveTimer: null,
-    transitionTimer: null,
+    matchTransitionTimer: null,
     workerRestartTimer: null,
     searchWatchdogTimer: null,
     boardCache: { squares: null, container: null },
-    logThrottle: {}
+    logThrottle: {},
+    colorSwap: false
 };
 
 // ============================================
@@ -124,80 +114,15 @@ function debugLog(tag, message) {
 }
 
 // ============================================
-// OPENINGS DATABASE
-// ============================================
-
-const openingsDatabase = [
-    { name: 'Sicilian Defense', moves: ['e4', 'c5'] },
-    { name: 'French Defense', moves: ['e4', 'e6'] },
-    { name: 'Caro-Kann Defense', moves: ['e4', 'c6'] },
-    { name: "Queen's Gambit", moves: ['d4', 'd5'] },
-    { name: "King's Indian Defense", moves: ['d4', 'Nf6', 'c4', 'g6'] },
-    { name: "Queen's Indian Defense", moves: ['d4', 'Nf6', 'c4', 'e6'] },
-    { name: 'English Opening', moves: ['c4'] },
-    { name: 'Ruy Lopez', moves: ['e4', 'e5', 'Nf3', 'Nc6', 'Bb5'] },
-    { name: 'Italian Game', moves: ['e4', 'e5', 'Nf3', 'Nc6', 'Bc4'] },
-    { name: 'Scotch Game', moves: ['e4', 'e5', 'Nf3', 'Nc6', 'd4'] },
-    { name: 'Vienna Game', moves: ['e4', 'e5', 'Nc3'] },
-    { name: 'Pirc Defense', moves: ['e4', 'd6', 'd4', 'Nf6', 'Nc3', 'g6'] },
-    { name: 'Modern Defense', moves: ['e4', 'g6'] },
-    { name: 'Nimzo-Indian Defense', moves: ['d4', 'Nf6', 'c4', 'e6', 'Nc3', 'Bb4'] },
-    { name: 'Grünfeld Defense', moves: ['d4', 'Nf6', 'c4', 'g6', 'Nc3', 'd5'] },
-    { name: 'Slav Defense', moves: ['d4', 'd5', 'c4', 'c6'] },
-    { name: 'Semi-Slav', moves: ['d4', 'd5', 'c4', 'e6', 'Nc3', 'c6'] },
-    { name: 'Dutch Defense', moves: ['d4', 'f5'] },
-    { name: "Alekhine's Defense", moves: ['e4', 'Nf6'] },
-    { name: 'Scandinavian Defense', moves: ['e4', 'd5'] },
-    { name: "Petrov's Defense", moves: ['e4', 'e5', 'Nf3', 'Nf6'] },
-    { name: 'London System', moves: ['d4', 'Nf6', 'Bf4', 'e6', 'e3', 'c5'] },
-    { name: 'Réti Opening', moves: ['Nf3', 'd5', 'c4'] },
-    { name: 'Four Knights Game', moves: ['e4', 'e5', 'Nf3', 'Nc6', 'Nc3', 'Nf6'] }
-];
-
-// ============================================
 // INITIALIZATION
 // ============================================
 
-document.addEventListener('DOMContentLoaded', function() { initializeApp(); });
+document.addEventListener('DOMContentLoaded', function() {
+    initializeApp();
+});
 
 function initializeApp() {
-    var cb = document.getElementById('continueBtn');
-    var rb = document.getElementById('resetBtn');
-    if (cb) cb.addEventListener('click', startContinue);
-    if (rb) rb.addEventListener('click', startReset);
-    loadState();
-    showHomeScreen();
-}
-
-function showHomeScreen() {
-    var h = document.getElementById('homeScreen');
-    var l = document.getElementById('liveScreen');
-    if (h) h.style.display = 'flex';
-    if (l) l.style.display = 'none';
-}
-
-function showLiveScreen() {
-    var h = document.getElementById('homeScreen');
-    var l = document.getElementById('liveScreen');
-    if (h) h.style.display = 'none';
-    if (l) l.style.display = 'flex';
-}
-
-function startContinue() {
-    debugLog('INIT', 'Continue');
-    loadState();
-    showLiveScreen();
-    fullCleanup();
-    initializeWorkers();
-    startMatch();
-}
-
-function startReset() {
-    debugLog('INIT', 'Reset');
-    state.currentMatch = 1; state.alphaWins = 0; state.betaWins = 0; state.draws = 0;
-    state.usedOpenings = []; state.alphaColor = 'w'; state.betaColor = 'b';
-    try { localStorage.removeItem('drderChessState'); } catch(e) {}
-    showLiveScreen();
+    debugLog('INIT', 'Starting local AI vs AI display');
     fullCleanup();
     initializeWorkers();
     startMatch();
@@ -206,7 +131,7 @@ function startReset() {
 function fullCleanup() {
     invalidateCurrentSearch();
     cancelNextMoveTimer();
-    cancelTransitionTimer();
+    cancelMatchTransitionTimer();
     cancelWorkerRestartTimer();
     cancelSearchWatchdog();
     state.isMatchRunning = false;
@@ -219,41 +144,11 @@ function fullCleanup() {
 }
 
 // ============================================
-// STATE & STORAGE
-// ============================================
-
-function saveState() {
-    try {
-        var d = { version: state.version, currentMatch: state.currentMatch, alphaWins: state.alphaWins, betaWins: state.betaWins, draws: state.draws, usedOpenings: state.usedOpenings.slice(-MAX_USED_OPENINGS), alphaColor: state.alphaColor, betaColor: state.betaColor };
-        localStorage.setItem('drderChessState', JSON.stringify(d));
-    } catch(e) {}
-}
-
-function loadState() {
-    try {
-        var s = localStorage.getItem('drderChessState');
-        if (s) {
-            var l = JSON.parse(s);
-            if (l && typeof l === 'object') {
-                state.currentMatch = (typeof l.currentMatch === 'number' && l.currentMatch > 0) ? l.currentMatch : 1;
-                state.alphaWins = (typeof l.alphaWins === 'number' && l.alphaWins >= 0) ? l.alphaWins : 0;
-                state.betaWins = (typeof l.betaWins === 'number' && l.betaWins >= 0) ? l.betaWins : 0;
-                state.draws = (typeof l.draws === 'number' && l.draws >= 0) ? l.draws : 0;
-                state.usedOpenings = Array.isArray(l.usedOpenings) ? l.usedOpenings.slice(-MAX_USED_OPENINGS) : [];
-                state.alphaColor = (l.alphaColor === 'w' || l.alphaColor === 'b') ? l.alphaColor : 'w';
-                state.betaColor = (l.betaColor === 'w' || l.betaColor === 'b') ? l.betaColor : 'b';
-                if (state.alphaColor === state.betaColor) { state.alphaColor = 'w'; state.betaColor = 'b'; }
-            }
-        }
-    } catch(e) {}
-}
-
-// ============================================
 // TIMER MANAGEMENT
 // ============================================
 
 function cancelNextMoveTimer() { if (state.nextMoveTimer !== null) { clearTimeout(state.nextMoveTimer); state.nextMoveTimer = null; } }
-function cancelTransitionTimer() { if (state.transitionTimer !== null) { clearInterval(state.transitionTimer); state.transitionTimer = null; } }
+function cancelMatchTransitionTimer() { if (state.matchTransitionTimer !== null) { clearTimeout(state.matchTransitionTimer); state.matchTransitionTimer = null; } }
 function cancelWorkerRestartTimer() { if (state.workerRestartTimer !== null) { clearTimeout(state.workerRestartTimer); state.workerRestartTimer = null; } }
 function cancelSearchWatchdog() { if (state.searchWatchdogTimer !== null) { clearTimeout(state.searchWatchdogTimer); state.searchWatchdogTimer = null; } }
 
@@ -276,7 +171,7 @@ function startSearchWatchdog(search, movetime, matchGen, workerGen) {
         state.searchWatchdogTimer = null;
         if (state.matchGeneration !== matchGen) return;
         var cs = state.pendingSearch;
-        if (!cs || cs.id !== searchId || !cs.active || cs.completed) return;
+        if (!cs || cs.id !== searchId || !cs.active || cs.completed || cs.moveApplied) return;
         if (state.workers[search.player] && state.workers[search.player].generation !== workerGen) return;
         debugLog('WATCHDOG', 'Timeout: ' + searchId);
         handleSearchTimeout(cs, matchGen);
@@ -284,7 +179,7 @@ function startSearchWatchdog(search, movetime, matchGen, workerGen) {
 }
 
 function handleSearchTimeout(search, matchGen) {
-    if (!search || !search.active || search.completed) return;
+    if (!search || !search.active || search.completed || search.moveApplied) return;
     if (state.matchGeneration !== matchGen) return;
     var pn = search.player;
     var sid = search.id;
@@ -314,8 +209,8 @@ function initializeWorkers() {
     invalidateCurrentSearch();
     cancelNextMoveTimer(); cancelSearchWatchdog(); cancelWorkerRestartTimer();
     terminateWorker('alpha'); terminateWorker('beta');
-    state.workers.alpha.restartCount = 0; state.workers.alpha.recovering = false;
-    state.workers.beta.restartCount = 0; state.workers.beta.recovering = false;
+    state.workers.alpha.restartCount = 0; state.workers.alpha.recovering = false; state.workers.alpha.searchSeq = 0;
+    state.workers.beta.restartCount = 0; state.workers.beta.recovering = false; state.workers.beta.searchSeq = 0;
     state.workers.alpha = createWorker('alpha');
     state.workers.beta = createWorker('beta');
 }
@@ -325,7 +220,7 @@ function terminateWorker(playerName) {
     if (!w) return;
     if (w.instance) { try { w.instance.postMessage({ type: 'quit' }); } catch(e) {} w.instance.terminate(); }
     if (w.url) { try { URL.revokeObjectURL(w.url); } catch(e) {} }
-    state.workers[playerName] = { instance: null, status: 'idle', url: null, restartCount: w.restartCount || 0, generation: (w.generation || 0) + 1, recovering: false };
+    state.workers[playerName] = { instance: null, status: 'idle', url: null, restartCount: w.restartCount || 0, generation: (w.generation || 0) + 1, recovering: false, searchSeq: (w.searchSeq || 0) + 1 };
 }
 
 function createWorker(playerName) {
@@ -335,8 +230,9 @@ function createWorker(playerName) {
     debugLog('WORKER', 'Create: ' + playerName + ' gen ' + gen);
 
     var wc = '';
-    wc += 'var sf=null,workerGen=' + gen + ',enginePath=' + JSON.stringify(enginePath) + ',ready=false,it=null;\n';
+    wc += 'var sf=null,workerGen=' + gen + ',enginePath=' + JSON.stringify(enginePath) + ',ready=false,it=null,activeSearchSeq=null;\n';
     wc += 'function ci(){if(it){clearTimeout(it);it=null;}}\n';
+    wc += 'function sendEngineMsg(d){self.postMessage({type:"engine",data:d,generation:workerGen});}\n';
     wc += 'self.onmessage=function(e){var c=e.data;\n';
     wc += 'if(c.type==="init"){try{importScripts(enginePath);\n';
     wc += 'var EC=null;\n';
@@ -346,36 +242,45 @@ function createWorker(playerName) {
     wc += 'else if(typeof Stockfish==="object"&&Stockfish!==null&&typeof Stockfish.postMessage==="function")sf=Stockfish;\n';
     wc += 'else if(typeof STOCKFISH==="object"&&STOCKFISH!==null&&typeof STOCKFISH.postMessage==="function")sf=STOCKFISH;\n';
     wc += 'if(sf&&typeof sf.postMessage==="function"){\n';
-    wc += 'sf.onmessage=function(m){if(ready){var d=null;\n';
+    wc += 'sf.onmessage=function(m){\n';
+    wc += 'var d=null;\n';
     wc += 'if(typeof m==="string")d=m;\n';
     wc += 'else if(m&&typeof m.data==="string")d=m.data;\n';
     wc += 'else if(m&&typeof m==="object"&&typeof m.data==="string")d=m.data;\n';
-    wc += 'if(typeof d==="string"&&d.length>0)self.postMessage({type:"engine",data:d,generation:workerGen});}\n';
-    wc += 'else{var rd=(typeof m==="string")?m:(m&&m.data?m.data:"");\n';
-    wc += 'if(typeof rd==="string"&&rd.indexOf("readyok")!==-1){ready=true;ci();self.postMessage({type:"engine",data:"readyok",generation:workerGen});}}};\n';
+    wc += 'if(typeof d==="string"&&d.length>0){\n';
+    wc += 'if(!ready){if(d.indexOf("readyok")!==-1){ready=true;ci();sendEngineMsg("readyok");}return;}\n';
+    wc += 'if(d.indexOf("bestmove")===0&&activeSearchSeq!==null){\n';
+    wc += 'var bmSeq=activeSearchSeq;activeSearchSeq=null;\n';
+    wc += 'sendEngineMsg(d+" seq:"+bmSeq);\n';
+    wc += '}else if(d.indexOf("multipv")!==-1&&activeSearchSeq!==null){sendEngineMsg(d);}\n';
+    wc += '}};\n';
     wc += 'sf.postMessage("uci");sf.postMessage("setoption name MultiPV value "+c.multiPV);sf.postMessage("isready");\n';
     wc += 'it=setTimeout(function(){if(!ready){ci();self.postMessage({type:"error",data:"Init timeout",generation:workerGen});}},' + WORKER_INIT_TIMEOUT_MS + ');\n';
     wc += '}else{self.postMessage({type:"error",data:"No postMessage",generation:workerGen});}}catch(err){self.postMessage({type:"error",data:err.message,generation:workerGen});}}\n';
-    wc += 'else if(c.type==="search"&&sf&&ready){sf.postMessage("stop");sf.postMessage("position fen "+c.fen);sf.postMessage("go depth "+c.depth+" movetime "+c.movetime);}\n';
-    wc += 'else if(c.type==="stop"&&sf){sf.postMessage("stop");}\n';
-    wc += 'else if(c.type==="quit"&&sf){ci();sf.postMessage("quit");}};\n';
+    wc += 'else if(c.type==="search"&&sf&&ready){\n';
+    wc += 'activeSearchSeq=c.searchSeq;\n';
+    wc += 'sf.postMessage("position fen "+c.fen);\n';
+    wc += 'sf.postMessage("go depth "+c.depth+" movetime "+c.movetime);\n';
+    wc += '}\n';
+    wc += 'else if(c.type==="stop"&&sf){activeSearchSeq=null;sf.postMessage("stop");}\n';
+    wc += 'else if(c.type==="quit"&&sf){activeSearchSeq=null;ci();sf.postMessage("quit");}};\n';
 
     var blob, url, instance;
     try { blob = new Blob([wc], { type: 'application/javascript' }); } catch(e) {
-        state.workers[playerName] = { instance: null, status: 'idle', url: null, restartCount: w.restartCount || 0, generation: gen + 1, recovering: false };
+        state.workers[playerName] = { instance: null, status: 'idle', url: null, restartCount: w.restartCount || 0, generation: gen + 1, recovering: false, searchSeq: (w.searchSeq || 0) + 1 };
         handleWorkerError(playerName, gen + 1); return state.workers[playerName];
     }
     try { url = URL.createObjectURL(blob); } catch(e) {
-        state.workers[playerName] = { instance: null, status: 'idle', url: null, restartCount: w.restartCount || 0, generation: gen + 1, recovering: false };
+        state.workers[playerName] = { instance: null, status: 'idle', url: null, restartCount: w.restartCount || 0, generation: gen + 1, recovering: false, searchSeq: (w.searchSeq || 0) + 1 };
         handleWorkerError(playerName, gen + 1); return state.workers[playerName];
     }
     try { instance = new Worker(url); } catch(e) {
         try { URL.revokeObjectURL(url); } catch(e2) {}
-        state.workers[playerName] = { instance: null, status: 'idle', url: null, restartCount: w.restartCount || 0, generation: gen + 1, recovering: false };
+        state.workers[playerName] = { instance: null, status: 'idle', url: null, restartCount: w.restartCount || 0, generation: gen + 1, recovering: false, searchSeq: (w.searchSeq || 0) + 1 };
         handleWorkerError(playerName, gen + 1); return state.workers[playerName];
     }
 
-    state.workers[playerName] = { instance: instance, status: 'initializing', url: url, restartCount: w.restartCount || 0, generation: gen, recovering: w.recovering || false };
+    state.workers[playerName] = { instance: instance, status: 'initializing', url: url, restartCount: w.restartCount || 0, generation: gen, recovering: w.recovering || false, searchSeq: w.searchSeq || 0 };
 
     instance.onmessage = function(e) {
         if (!e.data || typeof e.data !== 'object') return;
@@ -392,7 +297,7 @@ function handleWorkerError(playerName, workerGeneration) {
     var w = state.workers[playerName];
     if (!w) return;
     if (workerGeneration !== undefined && w.generation !== workerGeneration) return;
-    if (state.isMatchEnding) return;
+    if (state.isMatchEnding || state.isTransitioning) return;
     if (w.recovering) return;
     w.restartCount = (w.restartCount || 0) + 1;
     debugLog('WORKER', 'Crash: ' + playerName + ' #' + w.restartCount);
@@ -403,13 +308,11 @@ function handleWorkerError(playerName, workerGeneration) {
     w.recovering = true;
     invalidateCurrentSearch();
     cancelNextMoveTimer(); cancelWorkerRestartTimer(); cancelSearchWatchdog();
-    var oldGen = w.generation;
     terminateWorker(playerName);
     state.workers[playerName].restartCount = w.restartCount;
-    state.workers[playerName].generation = oldGen + 1;
     state.workers[playerName].recovering = true;
     createWorker(playerName);
-    if (!state.isMatchEnding) {
+    if (state.isMatchRunning && !state.isMatchEnding && !state.isTransitioning) {
         state.workerRestartTimer = setTimeout(function() {
             state.workerRestartTimer = null;
             if (state.workers[playerName]) state.workers[playerName].recovering = false;
@@ -429,19 +332,26 @@ function invalidateCurrentSearch() {
 }
 
 function createSearch(playerName, fen) {
+    if (state.searchActive) {
+        debugLog('SEARCH', 'Cannot create search - already active');
+        return null;
+    }
     invalidateCurrentSearch();
+    var w = state.workers[playerName];
+    w.searchSeq = (w.searchSeq || 0) + 1;
     var s = {
         id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
         player: playerName, fen: fen,
         candidates: [], bestCandidate: null,
         active: true, completed: false, moveApplied: false,
         matchGeneration: state.matchGeneration,
-        workerGeneration: state.workers[playerName].generation
+        workerGeneration: w.generation,
+        searchSeq: w.searchSeq
     };
     state.pendingSearch = s;
     state.searchActive = true;
     var p = personalities[playerName];
-    startSearchWatchdog(s, p.movetime, state.matchGeneration, state.workers[playerName].generation);
+    startSearchWatchdog(s, p.movetime, state.matchGeneration, w.generation);
     return s;
 }
 
@@ -485,9 +395,23 @@ function handleEngineMessage(playerName, msg, workerGeneration) {
     if (!msgStr) return;
     var w = state.workers[playerName];
     if (!w || w.generation !== workerGeneration) return;
-    if (msgStr === 'readyok' || msgStr.indexOf('readyok') !== -1) { w.status = 'ready'; return; }
+    if (msgStr === 'readyok' || msgStr.indexOf('readyok') !== -1) {
+        w.status = 'ready';
+        debugLog('ENGINE', playerName + ' ready');
+        return;
+    }
+    var msgSearchSeq = null;
+    if (msgStr.indexOf(' seq:') !== -1) {
+        var seqIdx = msgStr.indexOf(' seq:');
+        msgSearchSeq = parseInt(msgStr.substring(seqIdx + 5));
+        msgStr = msgStr.substring(0, seqIdx);
+    }
     var search = state.pendingSearch;
     if (!isValidSearchForMessage(search, playerName, workerGeneration)) return;
+    if (msgStr.indexOf('bestmove') === 0 && msgSearchSeq !== null && search.searchSeq !== msgSearchSeq) {
+        debugLog('ENGINE', 'Stale bestmove seq ' + msgSearchSeq + ' vs current ' + search.searchSeq);
+        return;
+    }
     if (msgStr.indexOf('multipv') !== -1) handleInfoMessage(search, msgStr);
     if (msgStr.indexOf('bestmove') === 0) handleBestmoveMessage(search, msgStr, playerName);
 }
@@ -683,31 +607,15 @@ function executeMove(playerName, moveStr) {
     if (!moveStr || typeof moveStr !== 'string') { invalidateCurrentSearch(); if (state.isMatchRunning && !state.isMatchEnding && !state.isTransitioning) makeNextMove(); return; }
     if (search.moveApplied) return;
     search.moveApplied = true;
-    var searcherColor = playerName === 'alpha' ? state.alphaColor : state.betaColor;
     var move;
     try { move = state.currentGame.move(moveStr, { sloppy: true }); } catch(e) { move = null; }
     if (!move) { search.moveApplied = false; invalidateCurrentSearch(); if (state.isMatchRunning && !state.isMatchEnding && !state.isTransitioning && state.currentGame && !isGameFinished()) makeNextMove(); return; }
     state.gameHistory.push(move);
     state.currentTurn = state.currentGame.turn();
-    updateEvaluation(search, searcherColor);
     invalidateCurrentSearch();
-    updateUI();
+    drawBoard();
     if (isGameFinished()) { endMatch(); return; }
     scheduleNextMove(MOVE_DELAY_MS);
-}
-
-function updateEvaluation(search, searcherColor) {
-    var bc = search.bestCandidate || getBestCandidateFromSearch(search);
-    if (!bc) return;
-    if (bc.isMate) {
-        var m = Math.abs(bc.mateIn);
-        state.lastEvaluation = bc.mateIn > 0 ? (searcherColor === 'w' ? 'M' + m : '-M' + m) : (searcherColor === 'w' ? '-M' + m : 'M' + m);
-    } else {
-        var ds = searcherColor === 'w' ? bc.score : -bc.score;
-        var v = (ds / 100).toFixed(2);
-        state.lastEvaluation = (ds > 0 ? '+' : '') + v;
-        if (ds === 0) state.lastEvaluation = '0.00';
-    }
 }
 
 // ============================================
@@ -716,53 +624,37 @@ function updateEvaluation(search, searcherColor) {
 
 function startMatch() {
     if (state.isTransitioning) return;
-    invalidateCurrentSearch(); cancelNextMoveTimer(); cancelTransitionTimer(); cancelSearchWatchdog(); cancelWorkerRestartTimer();
+    invalidateCurrentSearch(); cancelNextMoveTimer(); cancelMatchTransitionTimer(); cancelSearchWatchdog(); cancelWorkerRestartTimer();
     state.isMatchRunning = true; state.isMatchEnding = false; state.matchGeneration++;
-    state.currentGame = new Chess(); state.gameHistory = []; state.currentTurn = 'w'; state.lastEvaluation = '0.00'; state.isTransitioning = false;
+    state.currentGame = new Chess(); state.gameHistory = []; state.currentTurn = 'w'; state.isTransitioning = false;
     state.boardCache.squares = null; state.boardCache.container = null;
-    state.alphaColor = (state.currentMatch % 2 === 0) ? 'b' : 'w';
-    state.betaColor = (state.currentMatch % 2 === 0) ? 'w' : 'b';
-    applyOpening();
-    updateUI();
+    state.colorSwap = !state.colorSwap;
+    state.alphaColor = state.colorSwap ? 'b' : 'w';
+    state.betaColor = state.colorSwap ? 'w' : 'b';
+    drawBoard();
     makeNextMove();
 }
 
-function applyOpening() {
-    if (!state.currentGame) return;
-    var origFen = state.currentGame.fen(), origTurn = state.currentTurn;
-    var avail = [];
-    for (var i = 0; i < openingsDatabase.length; i++) { if (state.usedOpenings.indexOf(openingsDatabase[i].name) === -1) avail.push(openingsDatabase[i]); }
-    if (avail.length === 0) { state.usedOpenings = []; avail = openingsDatabase.slice(); }
-    var opening = null, applied = 0;
-    for (var a = 0; a < Math.min(avail.length, MAX_OPENING_ATTEMPTS); a++) {
-        var idx = Math.floor(Math.random() * avail.length), cand = avail[idx];
-        try { state.currentGame = new Chess(); state.currentGame.load(origFen); state.gameHistory = []; state.currentTurn = origTurn; } catch(e) { state.currentGame = new Chess(); state.gameHistory = []; state.currentTurn = 'w'; }
-        applied = 0; var ok = true;
-        for (var j = 0; j < cand.moves.length; j++) {
-            try { var mv = state.currentGame.move(cand.moves[j], { sloppy: true }); if (mv) { state.gameHistory.push(mv); state.currentTurn = state.currentGame.turn(); applied++; } else { ok = false; break; } } catch(e) { ok = false; break; }
-        }
-        if (applied > 0 && ok) { opening = cand; break; }
-        else { avail.splice(idx, 1); if (avail.length === 0) break; }
-    }
-    if (opening) {
-        state.usedOpenings.push(opening.name);
-        if (state.usedOpenings.length > MAX_USED_OPENINGS) state.usedOpenings = state.usedOpenings.slice(-24);
-        var el = document.getElementById('openingName'); if (el) el.textContent = opening.name;
-    } else {
-        try { state.currentGame = new Chess(); state.currentGame.load(origFen); state.gameHistory = []; state.currentTurn = origTurn; } catch(e) { state.currentGame = new Chess(); state.gameHistory = []; state.currentTurn = 'w'; }
-    }
-}
-
 function makeNextMove() {
-    if (!state.isMatchRunning || state.isMatchEnding || state.isTransitioning || !state.currentGame || state.searchActive) return;
+    if (!state.isMatchRunning || state.isMatchEnding || state.isTransitioning || !state.currentGame) return;
+    if (state.searchActive) return;
     if (isGameFinished()) { endMatch(); return; }
     var pn = state.currentTurn === state.alphaColor ? 'alpha' : 'beta';
     var w = state.workers[pn];
-    if (!w || w.status !== 'ready') { scheduleNextMove(WORKER_READY_POLL_MS); return; }
+    if (!w || w.status !== 'ready') {
+        if (w && w.status === 'initializing' && !w.recovering) {
+            scheduleNextMove(WORKER_READY_POLL_MS);
+        } else if (!w || w.status === 'idle') {
+            debugLog('MATCH', 'Worker ' + pn + ' not available, recovery');
+            handleWorkerError(pn, w ? w.generation : 0);
+        }
+        return;
+    }
     var fen = state.currentGame.fen();
-    createSearch(pn, fen);
+    var search = createSearch(pn, fen);
+    if (!search) return;
     if (w.instance) {
-        try { w.instance.postMessage({ type: 'search', fen: fen, depth: personalities[pn].depth, movetime: personalities[pn].movetime }); }
+        try { w.instance.postMessage({ type: 'search', fen: fen, depth: personalities[pn].depth, movetime: personalities[pn].movetime, searchSeq: search.searchSeq }); }
         catch(e) { invalidateCurrentSearch(); handleWorkerError(pn, w.generation); }
     }
 }
@@ -770,67 +662,22 @@ function makeNextMove() {
 function endMatch() {
     if (!state.isMatchRunning || state.isMatchEnding) return;
     state.isMatchEnding = true; state.isMatchRunning = false; state.isTransitioning = true;
-    invalidateCurrentSearch(); cancelNextMoveTimer(); cancelTransitionTimer(); cancelSearchWatchdog(); cancelWorkerRestartTimer();
+    invalidateCurrentSearch(); cancelNextMoveTimer(); cancelSearchWatchdog(); cancelWorkerRestartTimer();
     if (state.workers.alpha.instance) { try { state.workers.alpha.instance.postMessage({ type: 'stop' }); } catch(e) {} }
     if (state.workers.beta.instance) { try { state.workers.beta.instance.postMessage({ type: 'stop' }); } catch(e) {} }
-    var result = '';
-    if (state.currentGame) {
-        if (state.currentGame.in_checkmate()) {
-            var wc = state.currentTurn === 'w' ? 'b' : 'w';
-            var winner = wc === state.alphaColor ? 'ALPHA' : 'BETA';
-            if (winner === 'ALPHA') state.alphaWins++; else state.betaWins++;
-            result = winner + ' \u064a\u0641\u0648\u0632 \u0628\u0627\u0644\u062d\u0645\u064a\u0629';
-        } else if (state.currentGame.in_stalemate()) { state.draws++; result = '\u062a\u0639\u0627\u062f\u0644 (\u0631\u062f\u0628\u0629)'; }
-        else if (state.currentGame.in_threefold_repetition()) { state.draws++; result = '\u062a\u0639\u0627\u062f\u0644 (\u062a\u0643\u0631\u0627\u0631)'; }
-        else if (state.currentGame.insufficient_material()) { state.draws++; result = '\u062a\u0639\u0627\u062f\u0644 (\u0645\u0627\u062f\u0629)'; }
-        else { state.draws++; result = '\u062a\u0639\u0627\u062f\u0644'; }
-    } else { state.draws++; result = '\u062a\u0639\u0627\u062f\u0644'; }
-    state.currentMatch++;
-    saveState();
-    showMatchEnd(result);
-}
-
-function showMatchEnd(result) {
-    var scr = document.getElementById('matchEndScreen'), resEl = document.getElementById('matchResult'), timEl = document.getElementById('countdownTimer');
-    if (resEl) resEl.textContent = result;
-    if (scr) scr.style.display = 'flex';
-    var count = COUNTDOWN_SECONDS;
-    if (timEl) timEl.textContent = count;
-    cancelTransitionTimer();
-    state.transitionTimer = setInterval(function() {
-        count--;
-        if (count > 0) { if (timEl) timEl.textContent = count; }
-        else { clearInterval(state.transitionTimer); state.transitionTimer = null; if (scr) scr.style.display = 'none'; state.isTransitioning = false; state.isMatchEnding = false; startMatch(); }
-    }, COUNTDOWN_INTERVAL_MS);
+    debugLog('MATCH', 'Match ended');
+    cancelMatchTransitionTimer();
+    state.matchTransitionTimer = setTimeout(function() {
+        state.matchTransitionTimer = null;
+        state.isTransitioning = false;
+        state.isMatchEnding = false;
+        startMatch();
+    }, MATCH_TRANSITION_DELAY_MS);
 }
 
 // ============================================
 // UI RENDERING
 // ============================================
-
-function updateUI() {
-    var el;
-    el = document.getElementById('matchNumber'); if (el) el.textContent = state.currentMatch;
-    el = document.getElementById('whitePlayerName'); if (el) el.textContent = state.alphaColor === 'w' ? 'ALPHA' : 'BETA';
-    el = document.getElementById('blackPlayerName'); if (el) el.textContent = state.alphaColor === 'w' ? 'BETA' : 'ALPHA';
-    el = document.getElementById('alphaWins'); if (el) el.textContent = state.alphaWins;
-    el = document.getElementById('betaWins'); if (el) el.textContent = state.betaWins;
-    el = document.getElementById('draws'); if (el) el.textContent = state.draws;
-    el = document.getElementById('totalMatches'); if (el) el.textContent = state.alphaWins + state.betaWins + state.draws;
-    el = document.getElementById('moveCounter'); if (el) { var fm = state.gameHistory.length > 0 ? Math.floor((state.gameHistory.length - 1) / 2) + 1 : 1; el.textContent = fm; }
-    el = document.getElementById('evaluation'); if (el) el.textContent = state.lastEvaluation;
-    updateMovesList();
-    drawBoard();
-}
-
-function updateMovesList() {
-    var lst = document.getElementById('movesList'); if (!lst) return;
-    lst.innerHTML = '';
-    if (state.gameHistory.length === 0) { lst.innerHTML = '<div class="moves-empty">\u0641\u064a \u0627\u0646\u062a\u0638\u0627\u0631 \u0627\u0644\u0627\u0641\u062a\u062a\u0627\u062d\u064a\u0629...</div>'; return; }
-    var st = Math.max(0, state.gameHistory.length - MAX_MOVES_DISPLAY);
-    for (var i = st; i < state.gameHistory.length; i++) { var d = document.createElement('div'); d.className = 'move-item'; d.textContent = state.gameHistory[i].san; lst.appendChild(d); }
-    lst.scrollTop = lst.scrollHeight;
-}
 
 function drawBoard() {
     if (!state.currentGame) return;
@@ -866,4 +713,4 @@ function drawBoard() {
 // GLOBAL EXPORT
 // ============================================
 
-window.drderChess = { state: state, startContinue: startContinue, startReset: startReset };
+window.drderChess = { state: state };
