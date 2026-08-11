@@ -118,15 +118,11 @@ function debugLog(tag, message) {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    initializeApp();
-});
-
-function initializeApp() {
     debugLog('INIT', 'Starting local AI vs AI display');
     fullCleanup();
     initializeWorkers();
     startMatch();
-}
+});
 
 function fullCleanup() {
     invalidateCurrentSearch();
@@ -398,6 +394,10 @@ function handleEngineMessage(playerName, msg, workerGeneration) {
     if (msgStr === 'readyok' || msgStr.indexOf('readyok') !== -1) {
         w.status = 'ready';
         debugLog('ENGINE', playerName + ' ready');
+        if (!state.isMatchRunning && !state.isMatchEnding && !state.isTransitioning) {
+            debugLog('ENGINE', 'Worker ready, starting match');
+            startMatch();
+        }
         return;
     }
     var msgSearchSeq = null;
