@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="DrDer Chess Alpha - AI vs AI Chess Broadcasting Platform">
+    <meta name="description" content="DrDer Chess Alpha - Local Chess Display">
     <meta name="theme-color" content="#1a1a1a">
     
     <title>DrDer ♟ chess</title>
@@ -16,136 +16,8 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Home Screen -->
-    <div id="homeScreen" class="screen">
-        <div class="home-container">
-            <div class="home-content">
-                <h1 class="home-title">DrDer ♟ chess</h1>
-                <p class="home-subtitle">AI vs AI • LIVE CHESS</p>
-                
-                <div class="home-buttons">
-                    <button id="continueBtn" class="btn btn-primary">متابعة</button>
-                    <button id="resetBtn" class="btn btn-secondary">البدء من جديد</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Live Match Screen -->
-    <div id="liveScreen" class="screen" style="display: none;">
-        <div class="container">
-            <!-- Header Section -->
-            <header class="header">
-                <div class="header-top">
-                    <h1 class="app-title">DrDer ♟ chess</h1>
-                    <div class="live-indicator">
-                        <span class="live-dot"></span>
-                        <span class="live-text">LIVE</span>
-                    </div>
-                </div>
-                
-                <div class="match-info">
-                    <div class="match-number">MATCH #<span id="matchNumber">1</span></div>
-                    <div class="opening-name" id="openingName">جاري اختيار الافتتاح...</div>
-                </div>
-            </header>
-
-            <!-- Main Content -->
-            <main class="main-content">
-                <!-- Players Section -->
-                <section class="players-section">
-                    <div class="player-info player-white">
-                        <div class="player-name" id="whitePlayerName">ALPHA</div>
-                        <div class="player-type" id="whitePlayerType">TACTICAL AI</div>
-                        <div class="player-color-indicator white"></div>
-                    </div>
-                    
-                    <div class="vs-text">vs</div>
-                    
-                    <div class="player-info player-black">
-                        <div class="player-name" id="blackPlayerName">BETA</div>
-                        <div class="player-type" id="blackPlayerType">STRATEGIC AI</div>
-                        <div class="player-color-indicator black"></div>
-                    </div>
-                </section>
-
-                <!-- Chessboard Section -->
-                <section class="board-section">
-                    <div class="board-container">
-                        <div id="chessboard" class="chessboard"></div>
-                    </div>
-                </section>
-
-                <!-- Thinking Section -->
-                <section class="thinking-section" id="thinkingSection" style="display: none;">
-                    <div class="thinking-info">
-                        <div class="thinking-player" id="thinkingPlayer">ALPHA</div>
-                        <div class="thinking-text">يفكر...</div>
-                    </div>
-                    <div class="thinking-timer">
-                        <span id="thinkingTimer">7</span>ث
-                    </div>
-                </section>
-
-                <!-- Game Info Section -->
-                <section class="game-info-section">
-                    <div class="evaluation">
-                        <span class="eval-label">التقييم:</span>
-                        <span class="eval-value" id="evaluation">0.00</span>
-                    </div>
-                    
-                    <div class="move-counter">
-                        <span class="move-label">النقلة:</span>
-                        <span class="move-value" id="moveCounter">1</span>
-                    </div>
-                </section>
-
-                <!-- Move History Section -->
-                <section class="moves-section">
-                    <h3 class="moves-title">سجل النقلات</h3>
-                    <div class="moves-list" id="movesList">
-                        <div class="moves-empty">لا توجد نقلات بعد</div>
-                    </div>
-                </section>
-
-                <!-- Statistics Section -->
-                <section class="statistics-section">
-                    <h3 class="stats-title">إحصائيات البطولة</h3>
-                    <div class="stats-grid">
-                        <div class="stat-item">
-                            <div class="stat-label">انتصارات ALPHA</div>
-                            <div class="stat-value" id="alphaWins">0</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-label">انتصارات BETA</div>
-                            <div class="stat-value" id="betaWins">0</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-label">التعادلات</div>
-                            <div class="stat-value" id="draws">0</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-label">الإجمالي</div>
-                            <div class="stat-value" id="totalMatches">0</div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Match End Screen (Hidden by default) -->
-                <section class="match-end-screen" id="matchEndScreen" style="display: none;">
-                    <div class="match-end-content">
-                        <h2 class="match-end-title">انتهت المباراة</h2>
-                        <div class="match-result" id="matchResult">
-                            <!-- Result will be inserted here -->
-                        </div>
-                        <div class="next-match-countdown">
-                            <p>المباراة التالية تبدأ خلال...</p>
-                            <div class="countdown-timer" id="countdownTimer">3</div>
-                        </div>
-                    </div>
-                </section>
-            </main>
-        </div>
+    <div class="container">
+        <div id="chessboard" class="chessboard"></div>
     </div>
 
     <!-- Scripts -->
