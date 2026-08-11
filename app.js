@@ -45,14 +45,24 @@ function startSystem() {
 }
 
 function createWorker(name, path, multiPV) {
+    var engineURL = new URL(path, window.location.href).href;
+
     var code = '';
     code += 'try {\n';
-    code += '  importScripts("' + path + '");\n';
+    code += '  importScripts(' + JSON.stringify(engineURL) + ');\n';
     code += '  var engine = null;\n';
-    code += '  if (typeof Stockfish === "function") engine = Stockfish();\n';
-    code += '  else if (typeof STOCKFISH === "function") engine = STOCKFISH();\n';
-    code += '  else if (typeof Stockfish === "object" && Stockfish && Stockfish.postMessage) engine = Stockfish;\n';
-    code += '  else if (typeof STOCKFISH === "object" && STOCKFISH && STOCKFISH.postMessage) engine = STOCKFISH;\n';
+    code += '  if (typeof Stockfish === "function") {\n';
+    code += '    engine = Stockfish();\n';
+    code += '  }\n';
+    code += '  else if (typeof STOCKFISH === "function") {\n';
+    code += '    engine = STOCKFISH();\n';
+    code += '  }\n';
+    code += '  else if (typeof Stockfish === "object" && Stockfish && Stockfish.postMessage) {\n';
+    code += '    engine = Stockfish;\n';
+    code += '  }\n';
+    code += '  else if (typeof STOCKFISH === "object" && STOCKFISH && STOCKFISH.postMessage) {\n';
+    code += '    engine = STOCKFISH;\n';
+    code += '  }\n';
     code += '  if (engine && engine.postMessage) {\n';
     code += '    engine.onmessage = function(m) {\n';
     code += '      var d = typeof m === "string" ? m : (m && m.data ? m.data : "");\n';
@@ -64,13 +74,16 @@ function createWorker(name, path, multiPV) {
     code += '        engine.postMessage("uci");\n';
     code += '        engine.postMessage("setoption name MultiPV value ' + multiPV + '");\n';
     code += '        engine.postMessage("isready");\n';
-    code += '      } else if (c.fen) {\n';
+    code += '      }\n';
+    code += '      else if (c && c.fen) {\n';
     code += '        engine.postMessage("stop");\n';
     code += '        engine.postMessage("position fen " + c.fen);\n';
     code += '        engine.postMessage("go depth 20 movetime 3000");\n';
-    code += '      } else if (c === "stop") {\n';
+    code += '      }\n';
+    code += '      else if (c === "stop") {\n';
     code += '        engine.postMessage("stop");\n';
-    code += '      } else if (c === "quit") {\n';
+    code += '      }\n';
+    code += '      else if (c === "quit") {\n';
     code += '        engine.postMessage("quit");\n';
     code += '      }\n';
     code += '    };\n';
@@ -80,25 +93,31 @@ function createWorker(name, path, multiPV) {
     code += '} catch(err) {\n';
     code += '  self.postMessage({data: "error:" + err.message});\n';
     code += '}\n';
-    
+
     var blob = new Blob([code], { type: 'application/javascript' });
     var url = URL.createObjectURL(blob);
     var worker = new Worker(url);
-    
+
     worker.onmessage = function(e) {
         if (!e.data || !e.data.data) return;
         var msg = e.data.data;
-        
+
         if (msg.indexOf('readyok') !== -1) {
             worker.ready = true;
         }
-        
+
         if (msg.indexOf('bestmove') !== -1 && worker.searching) {
             worker.searching = false;
             handleBestmove(name, msg);
         }
     };
-    
+
+    worker.onerror = function(error) {
+        console.error('Worker error [' + name + ']:', error.message, error.filename, error.lineno);
+        worker.ready = false;
+        worker.searching = false;
+    };
+
     worker.ready = false;
     worker.searching = false;
     worker.postMessage('init');
