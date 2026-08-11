@@ -1,5 +1,5 @@
 /* ============================================
-   DrDer Chess Alpha - Minimalist Display Style
+   DrDer Chess - Clean Display Style
    ============================================ */
 
 * {
@@ -11,56 +11,51 @@
 html, body {
     width: 100%;
     height: 100%;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-    background-color: #0a0a0a;
-    color: #ffffff;
-    direction: rtl;
-    text-align: right;
     overflow: hidden;
+    background-color: #0a0a0a;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    direction: rtl;
 }
-
-/* ============================================
-   Container & Layout
-   ============================================ */
 
 .container {
     width: 100%;
     height: 100%;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
-    padding: 0;
+    justify-content: center;
     background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+    gap: 15px;
+    padding: 10px;
 }
 
-/* ============================================
-   Chessboard
-   ============================================ */
+.title {
+    color: #ffffff;
+    font-size: clamp(20px, 4vmin, 36px);
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-align: center;
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+    user-select: none;
+    -webkit-user-select: none;
+}
 
 .chessboard {
     display: grid;
     grid-template-columns: repeat(8, 1fr);
     grid-template-rows: repeat(8, 1fr);
-    gap: 0;
-    aspect-ratio: 1;
-    width: 90vmin;
-    height: 90vmin;
-    max-width: 95vw;
-    max-height: 95vh;
+    width: min(90vmin, 90vw, 750px);
+    height: min(90vmin, 90vw, 750px);
+    border: 3px solid #333;
+    border-radius: 6px;
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(0, 0, 0, 0.5);
-    border-radius: 8px;
     overflow: hidden;
-    background: #2a2a2a;
 }
-
-/* ============================================
-   Squares
-   ============================================ */
 
 .square {
     display: flex;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
     position: relative;
     user-select: none;
     -webkit-user-select: none;
@@ -74,12 +69,8 @@ html, body {
     background: linear-gradient(135deg, #6b4423 0%, #5a3a1a 100%);
 }
 
-/* ============================================
-   Pieces
-   ============================================ */
-
 .piece {
-    font-size: 10vmin;
+    font-size: min(10vmin, 10vw, 80px);
     line-height: 1;
     font-weight: bold;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
@@ -101,25 +92,20 @@ html, body {
    Responsive Design
    ============================================ */
 
-@media (max-width: 1200px) {
-    .chessboard {
-        width: 85vmin;
-        height: 85vmin;
+@media (max-width: 768px) {
+    .container {
+        gap: 10px;
+        padding: 5px;
     }
     
-    .piece {
-        font-size: 9.5vmin;
-    }
-}
-
-@media (max-width: 768px) {
     .chessboard {
         width: 95vmin;
         height: 95vmin;
+        border-width: 2px;
     }
     
     .piece {
-        font-size: 10vmin;
+        font-size: 11vmin;
     }
 }
 
@@ -127,10 +113,52 @@ html, body {
     .chessboard {
         width: 98vmin;
         height: 98vmin;
+        border-width: 1px;
     }
     
     .piece {
-        font-size: 11vmin;
+        font-size: 12vmin;
+    }
+}
+
+@media (min-width: 1200px) {
+    .chessboard {
+        width: 750px;
+        height: 750px;
+    }
+    
+    .piece {
+        font-size: 75px;
+    }
+}
+
+/* PWA / Fullscreen */
+@media (display-mode: fullscreen) {
+    .chessboard {
+        width: 92vh;
+        height: 92vh;
+        max-width: 92vh;
+        max-height: 92vh;
+        border: none;
+        border-radius: 0;
+    }
+}
+
+/* Landscape phone */
+@media (max-width: 900px) and (orientation: landscape) {
+    .container {
+        flex-direction: row;
+        gap: 20px;
+    }
+    
+    .title {
+        font-size: 3vh;
+        writing-mode: vertical-rl;
+    }
+    
+    .chessboard {
+        width: 90vh;
+        height: 90vh;
     }
 }
 
