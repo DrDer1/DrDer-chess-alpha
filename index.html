@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="DrDer Chess - Local AI vs AI Chess Display">
+    <meta name="description" content="DrDer Chess - AI vs AI Chess Display">
     <meta name="theme-color" content="#0a0a0a">
     
     <title>DrDer-CheSS</title>
@@ -18,6 +18,18 @@
 <body>
     <div class="container">
         <h1 class="title">DrDer-CheSS</h1>
+        
+        <div class="players-info">
+            <div class="player white-player">
+                <span class="player-dot white-dot"></span>
+                <span id="whitePlayer">Alpha</span>
+            </div>
+            <div class="player black-player">
+                <span class="player-dot black-dot"></span>
+                <span id="blackPlayer">Beta</span>
+            </div>
+        </div>
+        
         <div id="chessboard" class="chessboard"></div>
     </div>
 
