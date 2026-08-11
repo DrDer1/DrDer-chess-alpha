@@ -1,3 +1,8 @@
+/* ============================================
+   DrDer Chess - Service Worker
+   Clears cache on every load for fresh start
+   ============================================ */
+
 var CACHE_NAME = 'drder-chess-v1';
 
 self.addEventListener('install', function(event) {
@@ -12,11 +17,12 @@ self.addEventListener('activate', function(event) {
                     return caches.delete(cacheName);
                 })
             );
+        }).then(function() {
+            return self.clients.claim();
         })
     );
-    return self.clients.claim();
 });
 
 self.addEventListener('fetch', function(event) {
-    return fetch(event.request);
+    event.respondWith(fetch(event.request));
 });
