@@ -21,15 +21,13 @@
         <div id="chessboard" class="chessboard"></div>
     </div>
 
-    <!-- Scripts -->
     <script src="chess.min.js"></script>
     <script src="app.js"></script>
     
-    <!-- Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(err => {
-                console.warn('Service Worker registration failed:', err);
+            navigator.serviceWorker.register('sw.js').catch(function(err) {
+                console.warn('SW registration failed:', err);
             });
         }
     </script>
