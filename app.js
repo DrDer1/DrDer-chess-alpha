@@ -2,10 +2,6 @@
    DrDer Chess - Local AI vs AI Display
    ============================================ */
 
-// ============================================
-// PERSONALITY DEFINITIONS
-// ============================================
-
 const personalities = {
     alpha: {
         name: 'ALPHA',
@@ -41,32 +37,19 @@ const personalities = {
     }
 };
 
-// ============================================
-// CONSTANTS
-// ============================================
-
 const MAX_WORKER_RESTARTS = 5;
 const SEARCH_WATCHDOG_MARGIN = 3000;
 const MOVE_DELAY_MS = 200;
 const WORKER_RESTART_DELAY_MS = 1000;
 const WORKER_READY_POLL_MS = 500;
 const MATCH_TRANSITION_DELAY_MS = 500;
-const WORKER_INIT_TIMEOUT_MS = 15000;
 const MAX_PERSONALITY_BONUS = 20;
 const DEBUG = true;
-
-// ============================================
-// STOCKFISH ENGINE PATHS
-// ============================================
 
 const ENGINE_PATHS = {
     alpha: './stockfish.alpha.js',
     beta: './stockfish.beta.js'
 };
-
-// ============================================
-// GLOBAL STATE
-// ============================================
 
 const state = {
     currentGame: null,
@@ -89,22 +72,13 @@ const state = {
     workerRestartTimer: null,
     searchWatchdogTimer: null,
     boardCache: { squares: null, container: null },
-    logThrottle: {},
     colorSwap: false,
     workersReadyCount: 0
 };
 
-// ============================================
-// DIAGNOSTIC LOGGING
-// ============================================
-
 function debugLog(tag, message) {
     if (!DEBUG) return;
     if (typeof console === 'undefined' || !console.log) return;
-    var now = Date.now();
-    var key = tag + ':' + message;
-    if (state.logThrottle[key] && now - state.logThrottle[key] < 2000) return;
-    state.logThrottle[key] = now;
     console.log('[DrDer][' + tag + '] ' + message);
 }
 
@@ -203,7 +177,7 @@ function initializeWorkers() {
     state.workersReadyCount = 0;
     state.workers.alpha = createWorker('alpha');
     state.workers.beta = createWorker('beta');
-    debugLog('INIT', 'Both workers created, waiting for readyok...');
+    debugLog('INIT', 'Workers created, waiting for readyok...');
 }
 
 function terminateWorker(playerName) {
@@ -243,17 +217,14 @@ function createWorker(playerName) {
 
     var blob, url, instance;
     try { blob = new Blob([wc], { type: 'application/javascript' }); } catch(e) {
-        debugLog('WORKER', 'Blob failed: ' + e.message);
         state.workers[playerName] = { instance: null, status: 'idle', url: null, restartCount: (w.restartCount||0), generation: gen+1, recovering: false, searchSeq: (w.searchSeq||0)+1 };
         return state.workers[playerName];
     }
     try { url = URL.createObjectURL(blob); } catch(e) {
-        debugLog('WORKER', 'URL failed: ' + e.message);
         state.workers[playerName] = { instance: null, status: 'idle', url: null, restartCount: (w.restartCount||0), generation: gen+1, recovering: false, searchSeq: (w.searchSeq||0)+1 };
         return state.workers[playerName];
     }
     try { instance = new Worker(url); } catch(e) {
-        debugLog('WORKER', 'Worker failed: ' + e.message);
         try { URL.revokeObjectURL(url); } catch(e2) {}
         state.workers[playerName] = { instance: null, status: 'idle', url: null, restartCount: (w.restartCount||0), generation: gen+1, recovering: false, searchSeq: (w.searchSeq||0)+1 };
         return state.workers[playerName];
@@ -280,10 +251,7 @@ function handleWorkerError(playerName, workerGeneration) {
     if (w.recovering) return;
     w.restartCount = (w.restartCount || 0) + 1;
     debugLog('WORKER', 'Crash: ' + playerName + ' #' + w.restartCount);
-    if (w.restartCount > MAX_WORKER_RESTARTS) {
-        debugLog('WORKER', 'MAX_RESTARTS exceeded for ' + playerName);
-        return;
-    }
+    if (w.restartCount > MAX_WORKER_RESTARTS) return;
     w.recovering = true;
     invalidateCurrentSearch();
     cancelNextMoveTimer(); cancelWorkerRestartTimer(); cancelSearchWatchdog();
@@ -311,7 +279,7 @@ function invalidateCurrentSearch() {
 }
 
 function createSearch(playerName, fen) {
-    if (state.searchActive) { debugLog('SEARCH', 'Already active'); return null; }
+    if (state.searchActive) return null;
     invalidateCurrentSearch();
     var w = state.workers[playerName];
     w.searchSeq = (w.searchSeq || 0) + 1;
@@ -326,14 +294,8 @@ function createSearch(playerName, fen) {
     };
     state.pendingSearch = s;
     state.searchActive = true;
-    var p = personalities[playerName];
-    startSearchWatchdog(s, p.movetime, state.matchGeneration, w.generation);
+    startSearchWatchdog(s, personalities[playerName].movetime, state.matchGeneration, w.generation);
     return s;
-}
-
-function isValidSearchForMessage(search, playerName, workerGeneration) {
-    if (!search) return false;
-    return search.matchGeneration === state.matchGeneration && search.player === playerName && search.workerGeneration === workerGeneration && search.active && !search.completed;
 }
 
 function isValidSearchForMove(search, playerName) {
@@ -372,22 +334,17 @@ function handleEngineMessage(playerName, msg, workerGeneration) {
     var w = state.workers[playerName];
     if (!w || w.generation !== workerGeneration) return;
 
-    // Handle readyok
     if (msgStr === 'readyok' || msgStr.indexOf('readyok') !== -1) {
         w.status = 'ready';
         state.workersReadyCount++;
         debugLog('ENGINE', playerName + ' ready (' + state.workersReadyCount + '/2)');
-        // Start match when both workers are ready
         if (state.workersReadyCount >= 2 && !state.isMatchRunning && !state.isTransitioning) {
-            debugLog('ENGINE', 'Both workers ready, starting match');
             startMatch();
         }
         return;
     }
 
-    // Handle error messages from worker
     if (msgStr.indexOf('error:') === 0) {
-        debugLog('ENGINE', playerName + ' engine error: ' + msgStr);
         handleWorkerError(playerName, workerGeneration);
         return;
     }
@@ -399,11 +356,8 @@ function handleEngineMessage(playerName, msg, workerGeneration) {
         msgStr = msgStr.substring(0, seqIdx);
     }
     var search = state.pendingSearch;
-    if (!isValidSearchForMessage(search, playerName, workerGeneration)) return;
-    if (msgStr.indexOf('bestmove') === 0 && msgSearchSeq !== null && search.searchSeq !== msgSearchSeq) {
-        debugLog('ENGINE', 'Stale bestmove seq ' + msgSearchSeq + ' vs ' + search.searchSeq);
-        return;
-    }
+    if (!search || search.matchGeneration !== state.matchGeneration || search.player !== playerName || search.workerGeneration !== workerGeneration || !search.active || search.completed) return;
+    if (msgStr.indexOf('bestmove') === 0 && msgSearchSeq !== null && search.searchSeq !== msgSearchSeq) return;
     if (msgStr.indexOf('multipv') !== -1) handleInfoMessage(search, msgStr);
     if (msgStr.indexOf('bestmove') === 0) handleBestmoveMessage(search, msgStr, playerName);
 }
@@ -428,15 +382,9 @@ function handleInfoMessage(search, msg) {
     if (cpI !== -1) { score = parseInt(parts[cpI + 1]); if (isNaN(score)) score = 0; }
     else if (mtI !== -1) { mateIn = parseInt(parts[mtI + 1]); if (isNaN(mateIn)) mateIn = 0; score = mateIn > 0 ? 100000 - mateIn : -100000 - mateIn; isMate = true; }
     if (!search.candidates) search.candidates = [];
-    var pv = [];
-    for (var j = pvI + 1; j < parts.length; j++) {
-        var t = parts[j];
-        if (t === 'score' || t === 'multipv' || t === 'depth' || t === 'cp' || t === 'mate' || t === 'nodes' || t === 'nps' || t === 'time' || t === 'pv' || t === 'hashfull' || t === 'tbhits' || t === 'seldepth' || t === 'currmove' || t === 'currmovenumber' || t === 'string' || t === 'upperbound' || t === 'lowerbound') break;
-        pv.push(t);
-    }
     var ex = search.candidates[rank - 1];
     if (!ex || depth >= (ex.depth || 0)) {
-        search.candidates[rank - 1] = { move: move, score: score, rank: rank, isMate: isMate, mateIn: mateIn, depth: depth, pv: pv };
+        search.candidates[rank - 1] = { move: move, score: score, rank: rank, isMate: isMate, mateIn: mateIn, depth: depth };
     }
     if (rank === 1) search.bestCandidate = search.candidates[0];
 }
@@ -451,8 +399,7 @@ function handleBestmoveMessage(search, msg, playerName) {
         completeSearch(search); invalidateCurrentSearch();
         if (state.currentGame && isGameFinished()) { endMatch(); }
         else if (state.isMatchRunning && !state.isMatchEnding && !state.isTransitioning) {
-            var w = state.workers[playerName];
-            handleWorkerError(playerName, w ? w.generation : 0);
+            handleWorkerError(playerName, state.workers[playerName] ? state.workers[playerName].generation : 0);
         }
         return;
     }
@@ -467,8 +414,7 @@ function handleBestmoveMessage(search, msg, playerName) {
     if (!simulateMove(bestMove)) {
         invalidateCurrentSearch();
         if (state.isMatchRunning && !state.isMatchEnding && !state.isTransitioning) {
-            var w2 = state.workers[playerName];
-            handleWorkerError(playerName, w2 ? w2.generation : 0);
+            handleWorkerError(playerName, state.workers[playerName] ? state.workers[playerName].generation : 0);
         }
         return;
     }
@@ -476,10 +422,6 @@ function handleBestmoveMessage(search, msg, playerName) {
     if (!chosen || !simulateMove(chosen)) chosen = bestMove;
     executeMove(playerName, chosen);
 }
-
-// ============================================
-// GAME OVER
-// ============================================
 
 function isGameFinished() { return state.currentGame ? state.currentGame.game_over() : false; }
 
@@ -512,20 +454,15 @@ function selectAlphaMove(search, bestMove) {
     var scored = [];
     for (var j = 0; j < valid.length; j++) {
         var c = valid[j];
-        if (!c.isMate && c.score < best.score - p.threshold) { scored.push({ move: c.move, final: -Infinity }); continue; }
+        if (!c.isMate && c.score < best.score - p.threshold) continue;
         if (c.isMate && c.mateIn > 0 && c.mateIn <= 5) { scored.push({ move: c.move, final: c.score + 5000 }); continue; }
         var bonus = c.score;
         var sim = simulateMove(c.move);
-        if (!sim) { scored.push({ move: c.move, final: -Infinity }); continue; }
+        if (!sim) continue;
         if (sim.san.indexOf('+') !== -1) bonus += Math.round(8 * p.aggression);
         if (sim.captured) bonus += Math.round(6 * p.aggression);
-        if (sim.san.indexOf('+') !== -1) bonus += Math.round(5 * p.kingAttack);
         if (sim.captured && sim.piece !== 'p' && sim.captured !== 'p') bonus += Math.round(4 * p.tacticalRisk);
-        if (sim.captured && sim.piece === 'p' && (sim.captured === 'n' || sim.captured === 'b')) bonus += Math.round(3 * p.sacrifice);
         if (phase === 'middlegame' && (sim.piece === 'q' || sim.piece === 'r')) bonus += Math.round(4 * p.pieceActivity);
-        if (sim.piece === 'p' && sim.san.indexOf('x') === -1 && sim.san.indexOf('+') === -1) bonus -= Math.round(3 * (1 - p.defense));
-        if (phase === 'endgame' && sim.san.indexOf('+') !== -1) bonus -= Math.round(2 * (1 - p.endgame));
-        if (p.drawAvoidance > 0.7 && sim.captured && sim.piece === 'q' && sim.captured === 'q') bonus -= Math.round(5 * p.drawAvoidance);
         if (c.isMate && c.mateIn > 0) bonus += Math.min(200, (10 - c.mateIn) * 20);
         var delta = bonus - c.score;
         if (Math.abs(delta) > MAX_PERSONALITY_BONUS) bonus = c.score + (delta > 0 ? MAX_PERSONALITY_BONUS : -MAX_PERSONALITY_BONUS);
@@ -546,19 +483,16 @@ function selectBetaMove(search, bestMove) {
     var scored = [];
     for (var j = 0; j < valid.length; j++) {
         var c = valid[j];
-        if (!c.isMate && c.score < best.score - p.threshold) { scored.push({ move: c.move, final: -Infinity }); continue; }
+        if (!c.isMate && c.score < best.score - p.threshold) continue;
         if (c.isMate && c.mateIn > 0 && c.mateIn <= 5) { scored.push({ move: c.move, final: c.score + 5000 }); continue; }
         var bonus = c.score;
         var sim = simulateMove(c.move);
-        if (!sim) { scored.push({ move: c.move, final: -Infinity }); continue; }
+        if (!sim) continue;
         if (sim.san.indexOf('O-O') !== -1) bonus += Math.round(8 * p.defense);
         if ((sim.piece === 'n' || sim.piece === 'b') && phase === 'opening') bonus += Math.round(4 * p.pieceActivity);
-        if (sim.piece === 'p' && sim.san.indexOf('x') === -1) bonus += Math.round(2 * p.defense);
         if (phase === 'endgame' && sim.captured) bonus += Math.round(5 * p.endgame);
         if (p.tacticalRisk < 0.5 && sim.san.indexOf('+') !== -1 && !sim.captured) bonus -= Math.round(4 * (1 - p.tacticalRisk));
         if (p.sacrifice < 0.3 && sim.captured && sim.piece !== 'p' && sim.captured === 'p') bonus -= Math.round(3 * (1 - p.sacrifice));
-        if (p.drawAvoidance > 0.5 && sim.captured && sim.piece === 'q' && sim.captured === 'q') bonus -= Math.round(3 * p.drawAvoidance);
-        if (sim.san.indexOf('+') !== -1 && !sim.captured) bonus -= Math.round(2 * (1 - p.aggression));
         var delta = bonus - c.score;
         if (Math.abs(delta) > MAX_PERSONALITY_BONUS) bonus = c.score + (delta > 0 ? MAX_PERSONALITY_BONUS : -MAX_PERSONALITY_BONUS);
         scored.push({ move: c.move, final: bonus });
@@ -585,7 +519,6 @@ function getGamePhase() {
     var mv = state.gameHistory.length;
     if (mv <= 12 && t >= 28) return 'opening';
     if (t <= 12) return 'endgame';
-    if (t <= 20 && mv > 30) return 'endgame';
     return 'middlegame';
 }
 
@@ -596,12 +529,12 @@ function getGamePhase() {
 function executeMove(playerName, moveStr) {
     var search = state.pendingSearch;
     if (!isValidSearchForMove(search, playerName)) return;
-    if (!moveStr || typeof moveStr !== 'string') { invalidateCurrentSearch(); if (state.isMatchRunning && !state.isMatchEnding && !state.isTransitioning) makeNextMove(); return; }
+    if (!moveStr || typeof moveStr !== 'string') { invalidateCurrentSearch(); makeNextMove(); return; }
     if (search.moveApplied) return;
     search.moveApplied = true;
     var move;
     try { move = state.currentGame.move(moveStr, { sloppy: true }); } catch(e) { move = null; }
-    if (!move) { search.moveApplied = false; invalidateCurrentSearch(); if (state.isMatchRunning && !state.isMatchEnding && !state.isTransitioning && state.currentGame && !isGameFinished()) makeNextMove(); return; }
+    if (!move) { search.moveApplied = false; invalidateCurrentSearch(); makeNextMove(); return; }
     state.gameHistory.push(move);
     state.currentTurn = state.currentGame.turn();
     invalidateCurrentSearch();
@@ -624,6 +557,11 @@ function startMatch() {
     state.colorSwap = !state.colorSwap;
     state.alphaColor = state.colorSwap ? 'b' : 'w';
     state.betaColor = state.colorSwap ? 'w' : 'b';
+    // تحديث أسماء اللاعبين في الواجهة
+    var wEl = document.getElementById('whitePlayer');
+    var bEl = document.getElementById('blackPlayer');
+    if (wEl) wEl.textContent = state.alphaColor === 'w' ? 'Alpha' : 'Beta';
+    if (bEl) bEl.textContent = state.alphaColor === 'w' ? 'Beta' : 'Alpha';
     drawBoard();
     makeNextMove();
 }
@@ -636,7 +574,7 @@ function makeNextMove() {
     var w = state.workers[pn];
     if (!w || w.status !== 'ready') {
         if (w && w.status === 'initializing' && !w.recovering) { scheduleNextMove(WORKER_READY_POLL_MS); }
-        else if (!w || w.status === 'idle') { debugLog('MATCH', 'Worker ' + pn + ' not available'); handleWorkerError(pn, w ? w.generation : 0); }
+        else if (!w || w.status === 'idle') { handleWorkerError(pn, w ? w.generation : 0); }
         return;
     }
     var fen = state.currentGame.fen();
@@ -697,9 +635,5 @@ function drawBoard() {
         state.boardCache.container = cb; state.boardCache.squares = sqs;
     }
 }
-
-// ============================================
-// GLOBAL EXPORT
-// ============================================
 
 window.drderChess = { state: state };
