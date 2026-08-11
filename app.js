@@ -1,6 +1,6 @@
 /* ============================================
    DrDer Chess - Local AI vs AI Display
-   Stable Production Version
+   GitHub Pages Compatible Version
    ============================================ */
 
 var personalities = {
@@ -65,9 +65,6 @@ function debugLog(tag, msg) {
     console.log('[DrDer][' + tag + '] ' + msg);
 }
 
-// ============================================
-// تهيئة الرقعة الفارغة فوراً
-// ============================================
 function initEmptyBoard() {
     state.currentGame = new Chess();
     state.gameHistory = [];
@@ -75,11 +72,7 @@ function initEmptyBoard() {
     drawBoard();
 }
 
-// ============================================
-// INITIALIZATION
-// ============================================
 document.addEventListener('DOMContentLoaded', function() {
-    debugLog('INIT', 'DOM ready');
     initEmptyBoard();
     fullCleanup();
     initializeWorkers();
@@ -95,9 +88,6 @@ function fullCleanup() {
     state.matchGeneration = (state.matchGeneration || 0) + 1;
     state.workersReadyCount = 0;
     state.isFinalFailure = false;
-    if (state.boardCache && state.boardCache.url) {
-        try { URL.revokeObjectURL(state.boardCache.url); } catch(e) {}
-    }
     state.boardCache = null;
 }
 
@@ -114,9 +104,6 @@ function scheduleNextMove(delay) {
     state.nextMoveTimer = setTimeout(function() { state.nextMoveTimer = null; makeNextMove(); }, delay);
 }
 
-// ============================================
-// SEARCH WATCHDOG
-// ============================================
 function startSearchWatchdog(search, movetime, matchGen, workerGen) {
     if (state.searchWatchdogTimer !== null) { clearTimeout(state.searchWatchdogTimer); state.searchWatchdogTimer = null; }
     if (!search || !search.id || !search.active) return;
@@ -152,9 +139,6 @@ function handleSearchTimeout(search, matchGen) {
     }, 500);
 }
 
-// ============================================
-// WORKER MANAGEMENT
-// ============================================
 function getEnginePath(playerName) { return ENGINE_PATHS[playerName] || './stockfish.alpha.js'; }
 
 function initializeWorkers() {
@@ -180,8 +164,7 @@ function createWorker(playerName) {
     var gen = w.generation;
     var enginePath = getEnginePath(playerName);
 
-    var wc = '';
-    wc += 'var sf=null,workerGen=' + gen + ',ready=false,it=null,activeSearchSeq=null;\n';
+    var wc = 'var sf=null,workerGen=' + gen + ',ready=false,it=null,activeSearchSeq=null;\n';
     wc += 'function ci(){if(it){clearTimeout(it);it=null;}}\n';
     wc += 'function send(d){self.postMessage({type:"engine",data:d,generation:workerGen});}\n';
     wc += 'try{importScripts(' + JSON.stringify(enginePath) + ');\n';
@@ -241,14 +224,12 @@ function handleWorkerError(playerName, workerGeneration) {
     
     w.restartCount = (w.restartCount || 0) + 1;
     
-    // Check if both workers have exceeded max restarts
     var alphaMaxed = state.workers.alpha.restartCount > MAX_WORKER_RESTARTS;
     var betaMaxed = state.workers.beta.restartCount > MAX_WORKER_RESTARTS;
     
     if (alphaMaxed && betaMaxed) {
         if (!state.isFinalFailure) {
             state.isFinalFailure = true;
-            debugLog('WORKER', 'Both workers exceeded max restarts - final failure');
             var el = document.getElementById('whitePlayer');
             if (el) { el.textContent = 'Error'; el.style.color = '#ff4444'; }
             el = document.getElementById('blackPlayer');
@@ -258,14 +239,9 @@ function handleWorkerError(playerName, workerGeneration) {
     }
     
     if (w.restartCount > MAX_WORKER_RESTARTS) {
-        debugLog('WORKER', playerName + ' exceeded max restarts');
-        // Update display to show error for this player
         var playerEl = document.getElementById(playerName === 'alpha' ? (state.alphaColor === 'w' ? 'whitePlayer' : 'blackPlayer') : (state.betaColor === 'w' ? 'whitePlayer' : 'blackPlayer'));
         if (playerEl) { playerEl.textContent = 'Error'; playerEl.style.color = '#ff4444'; }
-        // If one worker is dead but match is running, try to continue with the other
-        if (state.isMatchRunning && !state.isMatchEnding) {
-            makeNextMove();
-        }
+        if (state.isMatchRunning && !state.isMatchEnding) { makeNextMove(); }
         return;
     }
     
@@ -281,16 +257,11 @@ function handleWorkerError(playerName, workerGeneration) {
         state.workerRestartTimer = setTimeout(function() {
             state.workerRestartTimer = null;
             if (state.workers[playerName]) state.workers[playerName].recovering = false;
-            if (state.isMatchRunning || !state.isMatchRunning) makeNextMove();
+            makeNextMove();
         }, WORKER_RESTART_DELAY_MS);
-    } else { 
-        if (state.workers[playerName]) state.workers[playerName].recovering = false; 
-    }
+    } else { if (state.workers[playerName]) state.workers[playerName].recovering = false; }
 }
 
-// ============================================
-// SEARCH MANAGEMENT
-// ============================================
 function invalidateCurrentSearch() {
     if (state.searchWatchdogTimer !== null) { clearTimeout(state.searchWatchdogTimer); state.searchWatchdogTimer = null; }
     if (state.pendingSearch) { state.pendingSearch.active = false; state.pendingSearch.completed = true; state.pendingSearch = null; }
@@ -339,9 +310,6 @@ function completeSearch(search) {
     search.active = false; search.completed = true; state.searchActive = false;
 }
 
-// ============================================
-// ENGINE MESSAGE HANDLING
-// ============================================
 function handleEngineMessage(playerName, msg, workerGeneration) {
     var msgStr = null;
     if (typeof msg === 'string') msgStr = msg;
@@ -356,16 +324,11 @@ function handleEngineMessage(playerName, msg, workerGeneration) {
     if (msgStr === 'readyok' || msgStr.indexOf('readyok') !== -1) {
         w.status = 'ready';
         state.workersReadyCount++;
-        if (state.workersReadyCount >= 2 && !state.isMatchRunning && !state.isTransitioning) {
-            startMatch();
-        }
+        if (state.workersReadyCount >= 2 && !state.isMatchRunning && !state.isTransitioning) { startMatch(); }
         return;
     }
 
-    if (msgStr.indexOf('error:') === 0) {
-        handleWorkerError(playerName, workerGeneration);
-        return;
-    }
+    if (msgStr.indexOf('error:') === 0) { handleWorkerError(playerName, workerGeneration); return; }
 
     var msgSearchSeq = null;
     if (msgStr.indexOf(' seq:') !== -1) {
@@ -443,9 +406,6 @@ function handleBestmoveMessage(search, msg, playerName) {
 
 function isGameFinished() { return state.currentGame ? state.currentGame.game_over() : false; }
 
-// ============================================
-// MOVE SELECTION
-// ============================================
 function getBestCandidateFromSearch(search) {
     if (!search.candidates) return null;
     for (var i = 0; i < search.candidates.length; i++) { if (search.candidates[i] && search.candidates[i].rank === 1) return search.candidates[i]; }
@@ -539,9 +499,6 @@ function getGamePhase() {
     return 'middlegame';
 }
 
-// ============================================
-// MOVE EXECUTION
-// ============================================
 function executeMove(playerName, moveStr) {
     var search = state.pendingSearch;
     if (!isValidSearchForMove(search, playerName)) return;
@@ -552,10 +509,7 @@ function executeMove(playerName, moveStr) {
     try { move = state.currentGame.move(moveStr, { sloppy: true }); } catch(e) { move = null; }
     if (!move) { search.moveApplied = false; invalidateCurrentSearch(); makeNextMove(); return; }
     state.gameHistory.push(move);
-    // Trim history to prevent memory leaks
-    if (state.gameHistory.length > MAX_HISTORY_LENGTH) {
-        state.gameHistory = state.gameHistory.slice(-MAX_HISTORY_LENGTH);
-    }
+    if (state.gameHistory.length > MAX_HISTORY_LENGTH) { state.gameHistory = state.gameHistory.slice(-MAX_HISTORY_LENGTH); }
     state.currentTurn = state.currentGame.turn();
     invalidateCurrentSearch();
     drawBoard();
@@ -563,9 +517,6 @@ function executeMove(playerName, moveStr) {
     scheduleNextMove(MOVE_DELAY_MS);
 }
 
-// ============================================
-// MATCH LOGIC
-// ============================================
 function startMatch() {
     if (state.isTransitioning || state.isFinalFailure) return;
     invalidateCurrentSearch(); cancelAllTimers();
@@ -584,14 +535,8 @@ function startMatch() {
 function updatePlayerDisplay() {
     var wEl = document.getElementById('whitePlayer');
     var bEl = document.getElementById('blackPlayer');
-    if (wEl) {
-        wEl.textContent = state.alphaColor === 'w' ? 'Alpha' : 'Beta';
-        wEl.style.color = '#cccccc';
-    }
-    if (bEl) {
-        bEl.textContent = state.alphaColor === 'w' ? 'Beta' : 'Alpha';
-        bEl.style.color = '#cccccc';
-    }
+    if (wEl) { wEl.textContent = state.alphaColor === 'w' ? 'Alpha' : 'Beta'; wEl.style.color = '#cccccc'; }
+    if (bEl) { bEl.textContent = state.alphaColor === 'w' ? 'Beta' : 'Alpha'; bEl.style.color = '#cccccc'; }
 }
 
 function makeNextMove() {
@@ -628,9 +573,6 @@ function endMatch() {
     }, MATCH_TRANSITION_DELAY_MS);
 }
 
-// ============================================
-// UI RENDERING
-// ============================================
 function drawBoard() {
     if (!state.currentGame) return;
     var board = state.currentGame.board(), cb = document.getElementById('chessboard');
