@@ -1,7 +1,3 @@
-/* ============================================
-   DrDer Chess - Service Worker
-   ============================================ */
-
 var CACHE_NAME = 'drder-chess-v1';
 
 self.addEventListener('install', function(event) {
@@ -16,12 +12,11 @@ self.addEventListener('activate', function(event) {
                     return caches.delete(cacheName);
                 })
             );
-        }).then(function() {
-            return self.clients.claim();
         })
     );
+    return self.clients.claim();
 });
 
 self.addEventListener('fetch', function(event) {
-    event.respondWith(fetch(event.request));
+    return fetch(event.request);
 });
