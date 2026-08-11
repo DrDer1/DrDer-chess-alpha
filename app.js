@@ -19,7 +19,7 @@ const personalities = {
         endgame: 0.60,
         drawAvoidance: 0.98,
         depth: 22,
-        movetime: 7000,
+        movetime: 3000,
         multiPV: 4,
         threshold: 65
     },
@@ -35,7 +35,7 @@ const personalities = {
         endgame: 0.98,
         drawAvoidance: 0.75,
         depth: 20,
-        movetime: 7000,
+        movetime: 3000,
         multiPV: 4,
         threshold: 30
     }
@@ -47,7 +47,7 @@ const personalities = {
 
 const MAX_WORKER_RESTARTS = 5;
 const SEARCH_WATCHDOG_MARGIN = 3000;
-const MOVE_DELAY_MS = 300;
+const MOVE_DELAY_MS = 200;
 const WORKER_RESTART_DELAY_MS = 1000;
 const WORKER_READY_POLL_MS = 500;
 const MATCH_TRANSITION_DELAY_MS = 500;
@@ -90,7 +90,8 @@ const state = {
     searchWatchdogTimer: null,
     boardCache: { squares: null, container: null },
     logThrottle: {},
-    colorSwap: false
+    colorSwap: false,
+    workersReadyCount: 0
 };
 
 // ============================================
@@ -104,12 +105,6 @@ function debugLog(tag, message) {
     var key = tag + ':' + message;
     if (state.logThrottle[key] && now - state.logThrottle[key] < 2000) return;
     state.logThrottle[key] = now;
-    var keys = Object.keys(state.logThrottle);
-    if (keys.length > 100) {
-        for (var i = 0; i < keys.length; i++) {
-            if (now - state.logThrottle[keys[i]] > 10000) delete state.logThrottle[keys[i]];
-        }
-    }
     console.log('[DrDer][' + tag + '] ' + message);
 }
 
@@ -118,10 +113,9 @@ function debugLog(tag, message) {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    debugLog('INIT', 'Starting local AI vs AI display');
+    debugLog('INIT', 'DOM ready');
     fullCleanup();
     initializeWorkers();
-    startMatch();
 });
 
 function fullCleanup() {
@@ -137,6 +131,7 @@ function fullCleanup() {
     state.matchGeneration = (state.matchGeneration || 0) + 1;
     state.boardCache.squares = null;
     state.boardCache.container = null;
+    state.workersReadyCount = 0;
 }
 
 // ============================================
@@ -205,10 +200,10 @@ function initializeWorkers() {
     invalidateCurrentSearch();
     cancelNextMoveTimer(); cancelSearchWatchdog(); cancelWorkerRestartTimer();
     terminateWorker('alpha'); terminateWorker('beta');
-    state.workers.alpha.restartCount = 0; state.workers.alpha.recovering = false; state.workers.alpha.searchSeq = 0;
-    state.workers.beta.restartCount = 0; state.workers.beta.recovering = false; state.workers.beta.searchSeq = 0;
+    state.workersReadyCount = 0;
     state.workers.alpha = createWorker('alpha');
     state.workers.beta = createWorker('beta');
+    debugLog('INIT', 'Both workers created, waiting for readyok...');
 }
 
 function terminateWorker(playerName) {
@@ -223,68 +218,56 @@ function createWorker(playerName) {
     var w = state.workers[playerName];
     var gen = w.generation;
     var enginePath = getEnginePath(playerName);
-    debugLog('WORKER', 'Create: ' + playerName + ' gen ' + gen);
+    debugLog('WORKER', 'Creating ' + playerName + ' gen ' + gen);
 
     var wc = '';
-    wc += 'var sf=null,workerGen=' + gen + ',enginePath=' + JSON.stringify(enginePath) + ',ready=false,it=null,activeSearchSeq=null;\n';
+    wc += 'var sf=null,workerGen=' + gen + ',ready=false,it=null,activeSearchSeq=null;\n';
     wc += 'function ci(){if(it){clearTimeout(it);it=null;}}\n';
-    wc += 'function sendEngineMsg(d){self.postMessage({type:"engine",data:d,generation:workerGen});}\n';
+    wc += 'function send(d){self.postMessage({type:"engine",data:d,generation:workerGen});}\n';
+    wc += 'try{importScripts(' + JSON.stringify(enginePath) + ');\n';
+    wc += 'var EC=typeof Stockfish==="function"?Stockfish:(typeof STOCKFISH==="function"?STOCKFISH:null);\n';
+    wc += 'if(EC)sf=EC();else if(typeof Stockfish==="object"&&Stockfish&&Stockfish.postMessage)sf=Stockfish;\n';
+    wc += 'else if(typeof STOCKFISH==="object"&&STOCKFISH&&STOCKFISH.postMessage)sf=STOCKFISH;\n';
+    wc += 'if(sf&&sf.postMessage){sf.onmessage=function(m){var d=typeof m==="string"?m:(m&&m.data?m.data:"");\n';
+    wc += 'if(typeof d==="string"&&d){if(!ready){if(d.indexOf("readyok")!==-1){ready=true;ci();send("readyok");}return;}\n';
+    wc += 'if(d.indexOf("bestmove")===0&&activeSearchSeq!==null){var s=activeSearchSeq;activeSearchSeq=null;send(d+" seq:"+s);}\n';
+    wc += 'else if(activeSearchSeq!==null){send(d);}}};\n';
     wc += 'self.onmessage=function(e){var c=e.data;\n';
-    wc += 'if(c.type==="init"){try{importScripts(enginePath);\n';
-    wc += 'var EC=null;\n';
-    wc += 'if(typeof Stockfish==="function")EC=Stockfish;\n';
-    wc += 'else if(typeof STOCKFISH==="function")EC=STOCKFISH;\n';
-    wc += 'if(EC){sf=EC();}\n';
-    wc += 'else if(typeof Stockfish==="object"&&Stockfish!==null&&typeof Stockfish.postMessage==="function")sf=Stockfish;\n';
-    wc += 'else if(typeof STOCKFISH==="object"&&STOCKFISH!==null&&typeof STOCKFISH.postMessage==="function")sf=STOCKFISH;\n';
-    wc += 'if(sf&&typeof sf.postMessage==="function"){\n';
-    wc += 'sf.onmessage=function(m){\n';
-    wc += 'var d=null;\n';
-    wc += 'if(typeof m==="string")d=m;\n';
-    wc += 'else if(m&&typeof m.data==="string")d=m.data;\n';
-    wc += 'else if(m&&typeof m==="object"&&typeof m.data==="string")d=m.data;\n';
-    wc += 'if(typeof d==="string"&&d.length>0){\n';
-    wc += 'if(!ready){if(d.indexOf("readyok")!==-1){ready=true;ci();sendEngineMsg("readyok");}return;}\n';
-    wc += 'if(d.indexOf("bestmove")===0&&activeSearchSeq!==null){\n';
-    wc += 'var bmSeq=activeSearchSeq;activeSearchSeq=null;\n';
-    wc += 'sendEngineMsg(d+" seq:"+bmSeq);\n';
-    wc += '}else if(d.indexOf("multipv")!==-1&&activeSearchSeq!==null){sendEngineMsg(d);}\n';
-    wc += '}};\n';
-    wc += 'sf.postMessage("uci");sf.postMessage("setoption name MultiPV value "+c.multiPV);sf.postMessage("isready");\n';
-    wc += 'it=setTimeout(function(){if(!ready){ci();self.postMessage({type:"error",data:"Init timeout",generation:workerGen});}},' + WORKER_INIT_TIMEOUT_MS + ');\n';
-    wc += '}else{self.postMessage({type:"error",data:"No postMessage",generation:workerGen});}}catch(err){self.postMessage({type:"error",data:err.message,generation:workerGen});}}\n';
-    wc += 'else if(c.type==="search"&&sf&&ready){\n';
-    wc += 'activeSearchSeq=c.searchSeq;\n';
-    wc += 'sf.postMessage("position fen "+c.fen);\n';
-    wc += 'sf.postMessage("go depth "+c.depth+" movetime "+c.movetime);\n';
-    wc += '}\n';
-    wc += 'else if(c.type==="stop"&&sf){activeSearchSeq=null;sf.postMessage("stop");}\n';
-    wc += 'else if(c.type==="quit"&&sf){activeSearchSeq=null;ci();sf.postMessage("quit");}};\n';
+    wc += 'if(c.type==="init"){sf.postMessage("uci");sf.postMessage("setoption name MultiPV value "+c.multiPV);sf.postMessage("isready");\n';
+    wc += 'it=setTimeout(function(){if(!ready){ci();send("error:init timeout");}},15000);}\n';
+    wc += 'else if(c.type==="search"&&ready){activeSearchSeq=c.searchSeq;sf.postMessage("position fen "+c.fen);sf.postMessage("go depth "+c.depth+" movetime "+c.movetime);}\n';
+    wc += 'else if(c.type==="stop"){activeSearchSeq=null;sf.postMessage("stop");}\n';
+    wc += 'else if(c.type==="quit"){activeSearchSeq=null;ci();sf.postMessage("quit");}};\n';
+    wc += '}else{send("error:engine init failed");}\n';
+    wc += '}catch(err){self.postMessage({type:"error",data:err.message,generation:workerGen});}\n';
 
     var blob, url, instance;
     try { blob = new Blob([wc], { type: 'application/javascript' }); } catch(e) {
-        state.workers[playerName] = { instance: null, status: 'idle', url: null, restartCount: w.restartCount || 0, generation: gen + 1, recovering: false, searchSeq: (w.searchSeq || 0) + 1 };
-        handleWorkerError(playerName, gen + 1); return state.workers[playerName];
+        debugLog('WORKER', 'Blob failed: ' + e.message);
+        state.workers[playerName] = { instance: null, status: 'idle', url: null, restartCount: (w.restartCount||0), generation: gen+1, recovering: false, searchSeq: (w.searchSeq||0)+1 };
+        return state.workers[playerName];
     }
     try { url = URL.createObjectURL(blob); } catch(e) {
-        state.workers[playerName] = { instance: null, status: 'idle', url: null, restartCount: w.restartCount || 0, generation: gen + 1, recovering: false, searchSeq: (w.searchSeq || 0) + 1 };
-        handleWorkerError(playerName, gen + 1); return state.workers[playerName];
+        debugLog('WORKER', 'URL failed: ' + e.message);
+        state.workers[playerName] = { instance: null, status: 'idle', url: null, restartCount: (w.restartCount||0), generation: gen+1, recovering: false, searchSeq: (w.searchSeq||0)+1 };
+        return state.workers[playerName];
     }
     try { instance = new Worker(url); } catch(e) {
+        debugLog('WORKER', 'Worker failed: ' + e.message);
         try { URL.revokeObjectURL(url); } catch(e2) {}
-        state.workers[playerName] = { instance: null, status: 'idle', url: null, restartCount: w.restartCount || 0, generation: gen + 1, recovering: false, searchSeq: (w.searchSeq || 0) + 1 };
-        handleWorkerError(playerName, gen + 1); return state.workers[playerName];
+        state.workers[playerName] = { instance: null, status: 'idle', url: null, restartCount: (w.restartCount||0), generation: gen+1, recovering: false, searchSeq: (w.searchSeq||0)+1 };
+        return state.workers[playerName];
     }
 
-    state.workers[playerName] = { instance: instance, status: 'initializing', url: url, restartCount: w.restartCount || 0, generation: gen, recovering: w.recovering || false, searchSeq: w.searchSeq || 0 };
+    state.workers[playerName] = { instance: instance, status: 'initializing', url: url, restartCount: w.restartCount||0, generation: gen, recovering: false, searchSeq: w.searchSeq||0 };
 
     instance.onmessage = function(e) {
         if (!e.data || typeof e.data !== 'object') return;
         if (e.data.generation !== undefined && e.data.generation !== gen) return;
         if (e.data.type === 'engine') handleEngineMessage(playerName, e.data.data, gen);
-        else if (e.data.type === 'error') { debugLog('WORKER', 'Error: ' + playerName); handleWorkerError(playerName, gen); }
+        else if (e.data.type === 'error') { debugLog('WORKER', 'Error ' + playerName + ': ' + e.data.data); }
     };
-    instance.onerror = function() { handleWorkerError(playerName, gen); };
+    instance.onerror = function(err) { debugLog('WORKER', 'Onerror ' + playerName); };
     instance.postMessage({ type: 'init', multiPV: personalities[playerName].multiPV });
     return state.workers[playerName];
 }
@@ -298,7 +281,7 @@ function handleWorkerError(playerName, workerGeneration) {
     w.restartCount = (w.restartCount || 0) + 1;
     debugLog('WORKER', 'Crash: ' + playerName + ' #' + w.restartCount);
     if (w.restartCount > MAX_WORKER_RESTARTS) {
-        debugLog('WORKER', 'MAX_WORKER_RESTARTS exceeded for ' + playerName);
+        debugLog('WORKER', 'MAX_RESTARTS exceeded for ' + playerName);
         return;
     }
     w.recovering = true;
@@ -328,10 +311,7 @@ function invalidateCurrentSearch() {
 }
 
 function createSearch(playerName, fen) {
-    if (state.searchActive) {
-        debugLog('SEARCH', 'Cannot create search - already active');
-        return null;
-    }
+    if (state.searchActive) { debugLog('SEARCH', 'Already active'); return null; }
     invalidateCurrentSearch();
     var w = state.workers[playerName];
     w.searchSeq = (w.searchSeq || 0) + 1;
@@ -391,15 +371,27 @@ function handleEngineMessage(playerName, msg, workerGeneration) {
     if (!msgStr) return;
     var w = state.workers[playerName];
     if (!w || w.generation !== workerGeneration) return;
+
+    // Handle readyok
     if (msgStr === 'readyok' || msgStr.indexOf('readyok') !== -1) {
         w.status = 'ready';
-        debugLog('ENGINE', playerName + ' ready');
-        if (!state.isMatchRunning && !state.isMatchEnding && !state.isTransitioning) {
-            debugLog('ENGINE', 'Worker ready, starting match');
+        state.workersReadyCount++;
+        debugLog('ENGINE', playerName + ' ready (' + state.workersReadyCount + '/2)');
+        // Start match when both workers are ready
+        if (state.workersReadyCount >= 2 && !state.isMatchRunning && !state.isTransitioning) {
+            debugLog('ENGINE', 'Both workers ready, starting match');
             startMatch();
         }
         return;
     }
+
+    // Handle error messages from worker
+    if (msgStr.indexOf('error:') === 0) {
+        debugLog('ENGINE', playerName + ' engine error: ' + msgStr);
+        handleWorkerError(playerName, workerGeneration);
+        return;
+    }
+
     var msgSearchSeq = null;
     if (msgStr.indexOf(' seq:') !== -1) {
         var seqIdx = msgStr.indexOf(' seq:');
@@ -409,7 +401,7 @@ function handleEngineMessage(playerName, msg, workerGeneration) {
     var search = state.pendingSearch;
     if (!isValidSearchForMessage(search, playerName, workerGeneration)) return;
     if (msgStr.indexOf('bestmove') === 0 && msgSearchSeq !== null && search.searchSeq !== msgSearchSeq) {
-        debugLog('ENGINE', 'Stale bestmove seq ' + msgSearchSeq + ' vs current ' + search.searchSeq);
+        debugLog('ENGINE', 'Stale bestmove seq ' + msgSearchSeq + ' vs ' + search.searchSeq);
         return;
     }
     if (msgStr.indexOf('multipv') !== -1) handleInfoMessage(search, msgStr);
@@ -588,12 +580,12 @@ function simulateMove(moveStr) {
 
 function getGamePhase() {
     if (!state.currentGame) return 'middlegame';
-    var b = state.currentGame.board(), t = 0, q = 0, rk = 0, mn = 0;
-    for (var ri = 0; ri < 8; ri++) { for (var ci = 0; ci < 8; ci++) { var pc = b[ri][ci]; if (pc) { t++; if (pc.type === 'q') q++; if (pc.type === 'r') rk++; if (pc.type === 'n' || pc.type === 'b') mn++; } } }
+    var b = state.currentGame.board(), t = 0;
+    for (var ri = 0; ri < 8; ri++) { for (var ci = 0; ci < 8; ci++) { if (b[ri][ci]) t++; } }
     var mv = state.gameHistory.length;
     if (mv <= 12 && t >= 28) return 'opening';
-    if (t <= 12 || (q === 0 && rk <= 2 && mn <= 4)) return 'endgame';
-    if (t <= 20 && q <= 1 && mv > 30) return 'endgame';
+    if (t <= 12) return 'endgame';
+    if (t <= 20 && mv > 30) return 'endgame';
     return 'middlegame';
 }
 
@@ -624,6 +616,7 @@ function executeMove(playerName, moveStr) {
 
 function startMatch() {
     if (state.isTransitioning) return;
+    debugLog('MATCH', 'Starting new match');
     invalidateCurrentSearch(); cancelNextMoveTimer(); cancelMatchTransitionTimer(); cancelSearchWatchdog(); cancelWorkerRestartTimer();
     state.isMatchRunning = true; state.isMatchEnding = false; state.matchGeneration++;
     state.currentGame = new Chess(); state.gameHistory = []; state.currentTurn = 'w'; state.isTransitioning = false;
@@ -642,12 +635,8 @@ function makeNextMove() {
     var pn = state.currentTurn === state.alphaColor ? 'alpha' : 'beta';
     var w = state.workers[pn];
     if (!w || w.status !== 'ready') {
-        if (w && w.status === 'initializing' && !w.recovering) {
-            scheduleNextMove(WORKER_READY_POLL_MS);
-        } else if (!w || w.status === 'idle') {
-            debugLog('MATCH', 'Worker ' + pn + ' not available, recovery');
-            handleWorkerError(pn, w ? w.generation : 0);
-        }
+        if (w && w.status === 'initializing' && !w.recovering) { scheduleNextMove(WORKER_READY_POLL_MS); }
+        else if (!w || w.status === 'idle') { debugLog('MATCH', 'Worker ' + pn + ' not available'); handleWorkerError(pn, w ? w.generation : 0); }
         return;
     }
     var fen = state.currentGame.fen();
