@@ -1,12 +1,12 @@
 {
-  "name": "DrDer Chess Alpha",
-  "short_name": "DrDer Chess",
-  "description": "AI vs AI Chess Broadcasting Platform",
+  "name": "DrDer-CheSS",
+  "short_name": "DrDer-CheSS",
+  "description": "AI vs AI Chess Display",
   "start_url": "index.html",
   "display": "standalone",
   "background_color": "#0a0a0a",
-  "theme_color": "#1a1a1a",
-  "orientation": "portrait",
+  "theme_color": "#0a0a0a",
+  "orientation": "any",
   "dir": "rtl",
   "lang": "ar",
   "icons": [
@@ -24,4 +24,3 @@
     }
   ]
 }
-
