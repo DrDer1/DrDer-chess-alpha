@@ -1,5 +1,5 @@
 /* ============================================
-   DrDer Chess Alpha - Professional Personality System v3.3
+   DrDer Chess Alpha - Professional Personality System v3.4
    ============================================ */
 
 var personalities = {
@@ -53,7 +53,8 @@ var state = {
     currentOpeningName: '',
     currentOpeningNameAr: '',
     usedOpenings: [],
-    audioCtx: null
+    audioCtx: null,
+    soundEnabled: false
 };
 
 var PIECE_UNICODE = {
@@ -130,7 +131,7 @@ function log(tag, msg) {
 }
 
 // ============================================
-// نظام الصوت
+// نظام الصوت - أصوات خشبية واقعية
 // ============================================
 
 function initAudio() {
@@ -142,67 +143,104 @@ function initAudio() {
 }
 
 function playMoveSound() {
-    if (!state.audioCtx) return;
+    if (!state.audioCtx || !state.soundEnabled) return;
     var ctx = state.audioCtx;
     var osc = ctx.createOscillator();
     var gain = ctx.createGain();
-    osc.connect(gain);
+    var filter = ctx.createBiquadFilter();
+    
+    osc.connect(filter);
+    filter.connect(gain);
     gain.connect(ctx.destination);
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(400, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.08);
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.1);
-}
-
-function playCaptureSound() {
-    if (!state.audioCtx) return;
-    var ctx = state.audioCtx;
-    var osc = ctx.createOscillator();
-    var gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(300, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.12);
-    gain.gain.setValueAtTime(0.35, ctx.currentTime);
+    
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(120, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.1);
+    
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(800, ctx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.1);
+    
+    gain.gain.setValueAtTime(0.5, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+    
     osc.start(ctx.currentTime);
     osc.stop(ctx.currentTime + 0.15);
 }
 
-function playCheckSound() {
-    if (!state.audioCtx) return;
+function playCaptureSound() {
+    if (!state.audioCtx || !state.soundEnabled) return;
     var ctx = state.audioCtx;
     var osc = ctx.createOscillator();
     var gain = ctx.createGain();
-    osc.connect(gain);
+    var filter = ctx.createBiquadFilter();
+    
+    osc.connect(filter);
+    filter.connect(gain);
     gain.connect(ctx.destination);
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(600, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.15);
-    gain.gain.setValueAtTime(0.4, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+    
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(180, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(60, ctx.currentTime + 0.15);
+    
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(1000, ctx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.15);
+    
+    gain.gain.setValueAtTime(0.6, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+    
     osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.18);
+    osc.stop(ctx.currentTime + 0.2);
+}
+
+function playCheckSound() {
+    if (!state.audioCtx || !state.soundEnabled) return;
+    var ctx = state.audioCtx;
+    var osc1 = ctx.createOscillator();
+    var osc2 = ctx.createOscillator();
+    var gain = ctx.createGain();
+    
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(ctx.destination);
+    
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(500, ctx.currentTime);
+    osc1.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.2);
+    
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(700, ctx.currentTime);
+    osc2.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.2);
+    
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+    
+    osc1.start(ctx.currentTime);
+    osc2.start(ctx.currentTime);
+    osc1.stop(ctx.currentTime + 0.3);
+    osc2.stop(ctx.currentTime + 0.3);
 }
 
 function playPromotionSound() {
-    if (!state.audioCtx) return;
+    if (!state.audioCtx || !state.soundEnabled) return;
     var ctx = state.audioCtx;
     var osc = ctx.createOscillator();
     var gain = ctx.createGain();
+    
     osc.connect(gain);
     gain.connect(ctx.destination);
+    
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(500, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.15);
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+    osc.frequency.setValueAtTime(400, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.2);
+    osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.35);
+    
+    gain.gain.setValueAtTime(0.35, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    
     osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.22);
+    osc.stop(ctx.currentTime + 0.45);
 }
 
 // ============================================
@@ -230,6 +268,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (state.audioCtx && state.audioCtx.state === 'suspended') {
                 state.audioCtx.resume();
             }
+            state.soundEnabled = true;
             this.textContent = '🔊 الصوت مفعل';
             this.style.display = 'none';
         });
@@ -753,7 +792,7 @@ function startMatch() {
 function updateOpeningDisplay() {
     var el = document.getElementById('openingName');
     if (el) {
-        el.textContent = state.currentOpeningNameAr + ' - ' + state.currentOpeningName;
+        el.textContent = 'افتتاحية هذه المباراة: ' + state.currentOpeningNameAr + ' (' + state.currentOpeningName + ')';
     }
 }
 
