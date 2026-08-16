@@ -44,7 +44,10 @@ var state = {
     nextMoveTimer: null,
     matchTransitionTimer: null,
     watchdogTimer: null,
-    colorSwap: false
+    colorSwap: false,
+    openingMoves: [],
+    openingIndex: 0,
+    gameReadyCount: 0
 };
 
 var OPENINGS = [
@@ -89,7 +92,6 @@ document.addEventListener('DOMContentLoaded', function() {
     startSystem();
 });
 
-// FIX: استخدام URL مطلق مبني على window.location.href
 function startSystem() {
     terminateAllWorkers();
     
@@ -102,7 +104,7 @@ function startSystem() {
     var checkReady = function() {
         var a = state.workers.alpha && state.workers.alpha.ready;
         var b = state.workers.beta && state.workers.beta.ready;
-        if (a && b) { startMatch(); }
+        if (a && b) { prepareMatch(); }
         else { setTimeout(checkReady, 500); }
     };
     setTimeout(checkReady, 2000);
@@ -118,7 +120,7 @@ function terminateAllWorkers() {
 }
 
 // ============================================
-// FIX: إنشاء Worker مباشر مع تسجيل الأخطاء بوضوح
+// إنشاء Worker
 // ============================================
 
 function createWorker(name, path) {
@@ -128,7 +130,6 @@ function createWorker(name, path) {
         worker = new Worker(path);
     } catch (e) {
         console.error('[DrDer] Failed to create ' + name + ' worker:', e.message);
-        console.error('[DrDer] Path used:', path);
         return null;
     }
     
@@ -144,8 +145,11 @@ function createWorker(name, path) {
         if (typeof msg !== 'string') return;
 
         if (msg.indexOf('readyok') !== -1) {
-            worker.ready = true;
+            if (!worker.ready) {
+                worker.ready = true;
+            }
             worker.gameReady = true;
+            onWorkerReady(name);
             return;
         }
 
@@ -179,6 +183,20 @@ function initializeEngine(worker) {
     worker.postMessage('isready');
 }
 
+function onWorkerReady(name) {
+    if (state.isMatchRunning && !state.searchActive) {
+        var playerName = state.currentTurn === state.alphaColor ? 'alpha' : 'beta';
+        if (name === playerName) {
+            scheduleNextMove();
+        }
+    }
+    if (state.workers.alpha && state.workers.alpha.gameReady && state.workers.beta && state.workers.beta.gameReady) {
+        if (!state.isMatchRunning) {
+            startMatch();
+        }
+    }
+}
+
 function handleWorkerCrash(name) {
     if (!state.isMatchRunning) return;
     state.searchActive = false;
@@ -186,11 +204,10 @@ function handleWorkerCrash(name) {
     var worker = state.workers[name];
     if (worker) { worker.searching = false; worker.terminate(); }
     state.workers[name] = createWorker(name, new URL('stockfish.' + name + '.js', window.location.href).href);
-    scheduleNextMove();
 }
 
 // ============================================
-// MultiPV Snapshot – PV1–4 نفس depth فقط
+// MultiPV Snapshot
 // ============================================
 
 function parseStockfishInfo(msg, worker) {
@@ -298,7 +315,7 @@ function handleBestmove(playerName, msg, worker) {
 }
 
 // ============================================
-// selectBestMove – Engine Quality + Personality
+// selectBestMove
 // ============================================
 
 function selectBestMove(playerName, bestMove, candidates, game) {
@@ -441,6 +458,22 @@ function makeNextMove() {
     if (state.searchActive) return;
     if (!state.currentGame || state.currentGame.game_over()) { endMatch(); return; }
 
+    // إذا كانت هناك حركات افتتاحية متبقية، العبها أولاً
+    if (state.openingIndex < state.openingMoves.length) {
+        var openingMove = state.openingMoves[state.openingIndex];
+        state.openingIndex++;
+        try {
+            var move = state.currentGame.move(openingMove, { sloppy: true });
+            if (move) {
+                state.gameHistory.push(move);
+                state.currentTurn = state.currentGame.turn();
+                drawBoard();
+            }
+        } catch(e) {}
+        scheduleNextMove();
+        return;
+    }
+
     var playerName = state.currentTurn === state.alphaColor ? 'alpha' : 'beta';
     var worker = state.workers[playerName];
     if (!worker || !worker.ready || !worker.gameReady) { scheduleNextMove(); return; }
@@ -473,17 +506,10 @@ function makeNextMove() {
 }
 
 // ============================================
-// FIX: إرسال stop قبل ucinewgame لضمان تسلسل UCI صحيح
+// المباراة
 // ============================================
 
-function startMatch() {
-    if (state.nextMoveTimer) clearTimeout(state.nextMoveTimer);
-    if (state.matchTransitionTimer) clearTimeout(state.matchTransitionTimer);
-    if (state.watchdogTimer) clearTimeout(state.watchdogTimer);
-
-    if (state.workers.alpha) { try { state.workers.alpha.postMessage('stop'); } catch(e) {} }
-    if (state.workers.beta) { try { state.workers.beta.postMessage('stop'); } catch(e) {} }
-
+function prepareMatch() {
     state.isMatchRunning = true;
     state.currentGame = new Chess();
     state.gameHistory = [];
@@ -497,6 +523,8 @@ function startMatch() {
     document.getElementById('whitePlayer').textContent = state.alphaColor === 'w' ? 'Alpha' : 'Beta';
     document.getElementById('blackPlayer').textContent = state.alphaColor === 'w' ? 'Beta' : 'Alpha';
 
+    // إرسال ucinewgame وانتظار readyok
+    state.gameReadyCount = 0;
     ['alpha', 'beta'].forEach(function(name) {
         var w = state.workers[name];
         if (w && w.ready) {
@@ -506,22 +534,32 @@ function startMatch() {
             w.postMessage('isready');
         }
     });
+}
 
-    applyOpening();
+function startMatch() {
+    state.isMatchRunning = true;
+    state.openingIndex = 0;
+    state.openingMoves = OPENINGS[Math.floor(Math.random() * OPENINGS.length)];
     drawBoard();
     scheduleNextMove();
 }
 
-function applyOpening() {
-    if (!state.currentGame) return;
-    var idx = Math.floor(Math.random() * OPENINGS.length);
-    var opening = OPENINGS[idx];
-    for (var i = 0; i < opening.length; i++) {
-        try {
-            var move = state.currentGame.move(opening[i], { sloppy: true });
-            if (move) { state.gameHistory.push(move); state.currentTurn = state.currentGame.turn(); }
-        } catch(e) {}
+function onWorkerReady(name) {
+    if (state.workers.alpha && state.workers.alpha.gameReady && state.workers.beta && state.workers.beta.gameReady) {
+        if (!state.isMatchRunning) {
+            startMatch();
+        }
     }
+    if (state.isMatchRunning && !state.searchActive) {
+        var playerName = state.currentTurn === state.alphaColor ? 'alpha' : 'beta';
+        if (name === playerName) {
+            scheduleNextMove();
+        }
+    }
+}
+
+function applyOpening() {
+    // لم تعد تستخدم - الافتتاحية تتحرك نقلة نقلة في makeNextMove
 }
 
 function endMatch() {
@@ -537,7 +575,7 @@ function endMatch() {
     if (state.workers.alpha) { try { state.workers.alpha.postMessage('stop'); } catch(e) {} state.workers.alpha.searching = false; }
     if (state.workers.beta) { try { state.workers.beta.postMessage('stop'); } catch(e) {} state.workers.beta.searching = false; }
 
-    state.matchTransitionTimer = setTimeout(function() { state.matchTransitionTimer = null; startMatch(); }, 800);
+    state.matchTransitionTimer = setTimeout(function() { state.matchTransitionTimer = null; prepareMatch(); }, 800);
 }
 
 // ============================================
