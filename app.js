@@ -1,5 +1,5 @@
 /* ============================================
-   DrDer Chess Alpha - Professional Personality System v3.4
+   DrDer Chess Alpha - Professional Personality System v3.5
    ============================================ */
 
 var personalities = {
@@ -53,8 +53,14 @@ var state = {
     currentOpeningName: '',
     currentOpeningNameAr: '',
     usedOpenings: [],
-    audioCtx: null,
-    soundEnabled: false
+    soundEnabled: true,
+    audioFiles: {
+        move: 'move.mp3',
+        capture: 'capture.mp3',
+        check: 'check.mp3',
+        checkmate: 'checkmate.mp3',
+        promote: 'promote.mp3'
+    }
 };
 
 var PIECE_UNICODE = {
@@ -131,117 +137,25 @@ function log(tag, msg) {
 }
 
 // ============================================
-// نظام الصوت - أصوات خشبية واقعية
+// نظام الصوت - ملفات MP3 حقيقية
 // ============================================
 
-function initAudio() {
-    if (!state.audioCtx) {
-        try {
-            state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        } catch(e) {}
-    }
+function playSound(soundName) {
+    if (!state.soundEnabled) return;
+    try {
+        var soundFile = state.audioFiles[soundName];
+        if (!soundFile) return;
+        var audio = new Audio(soundFile);
+        audio.volume = 0.7;
+        audio.play().catch(function() {});
+    } catch(e) {}
 }
 
-function playMoveSound() {
-    if (!state.audioCtx || !state.soundEnabled) return;
-    var ctx = state.audioCtx;
-    var osc = ctx.createOscillator();
-    var gain = ctx.createGain();
-    var filter = ctx.createBiquadFilter();
-    
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(ctx.destination);
-    
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(120, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.1);
-    
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(800, ctx.currentTime);
-    filter.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.1);
-    
-    gain.gain.setValueAtTime(0.5, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
-    
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.15);
-}
-
-function playCaptureSound() {
-    if (!state.audioCtx || !state.soundEnabled) return;
-    var ctx = state.audioCtx;
-    var osc = ctx.createOscillator();
-    var gain = ctx.createGain();
-    var filter = ctx.createBiquadFilter();
-    
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(ctx.destination);
-    
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(180, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(60, ctx.currentTime + 0.15);
-    
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(1000, ctx.currentTime);
-    filter.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.15);
-    
-    gain.gain.setValueAtTime(0.6, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
-    
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.2);
-}
-
-function playCheckSound() {
-    if (!state.audioCtx || !state.soundEnabled) return;
-    var ctx = state.audioCtx;
-    var osc1 = ctx.createOscillator();
-    var osc2 = ctx.createOscillator();
-    var gain = ctx.createGain();
-    
-    osc1.connect(gain);
-    osc2.connect(gain);
-    gain.connect(ctx.destination);
-    
-    osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(500, ctx.currentTime);
-    osc1.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.2);
-    
-    osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(700, ctx.currentTime);
-    osc2.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.2);
-    
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
-    
-    osc1.start(ctx.currentTime);
-    osc2.start(ctx.currentTime);
-    osc1.stop(ctx.currentTime + 0.3);
-    osc2.stop(ctx.currentTime + 0.3);
-}
-
-function playPromotionSound() {
-    if (!state.audioCtx || !state.soundEnabled) return;
-    var ctx = state.audioCtx;
-    var osc = ctx.createOscillator();
-    var gain = ctx.createGain();
-    
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(400, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.2);
-    osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.35);
-    
-    gain.gain.setValueAtTime(0.35, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-    
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.45);
-}
+function playMoveSound() { playSound('move'); }
+function playCaptureSound() { playSound('capture'); }
+function playCheckSound() { playSound('check'); }
+function playCheckmateSound() { playSound('checkmate'); }
+function playPromotionSound() { playSound('promote'); }
 
 // ============================================
 // التهيئة
@@ -261,16 +175,11 @@ function initEmptyBoard() {
 document.addEventListener('DOMContentLoaded', function() {
     initEmptyBoard();
     
-    var soundBtn = document.getElementById('enableSound');
+    var soundBtn = document.getElementById('toggleSound');
     if (soundBtn) {
         soundBtn.addEventListener('click', function() {
-            initAudio();
-            if (state.audioCtx && state.audioCtx.state === 'suspended') {
-                state.audioCtx.resume();
-            }
-            state.soundEnabled = true;
-            this.textContent = '🔊 الصوت مفعل';
-            this.style.display = 'none';
+            state.soundEnabled = !state.soundEnabled;
+            this.textContent = state.soundEnabled ? '🔊' : '🔇';
         });
     }
     
@@ -514,7 +423,10 @@ function handleBestmove(playerName, msg, worker) {
             state.currentTurn = state.currentGame.turn();
             drawBoard();
             updateCapturedDisplay();
-            if (state.currentGame.game_over()) { endMatch(); }
+            if (state.currentGame.game_over()) {
+                playCheckmateSound();
+                endMatch();
+            }
             else { scheduleNextMove(); }
         } else { scheduleNextMove(); }
     } catch(e) { scheduleNextMove(); }
