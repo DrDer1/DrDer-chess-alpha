@@ -23,8 +23,8 @@ body {
     align-items: center;
     justify-content: flex-start;
     background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
-    padding: 10px;
-    gap: 5px;
+    padding: 8px;
+    gap: 6px;
 }
 
 .title {
@@ -38,60 +38,6 @@ body {
     -webkit-user-select: none;
 }
 
-.players-info {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
-    width: 100%;
-    max-width: 750px;
-}
-
-.player-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: clamp(14px, 2vmin, 20px);
-    font-weight: 600;
-    color: #cccccc;
-}
-
-.player-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    display: inline-block;
-}
-
-.white-dot {
-    background-color: #ffffff;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
-}
-
-.black-dot {
-    background-color: #000000;
-    border: 2px solid #555;
-}
-
-.captured-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: clamp(12px, 1.5vmin, 18px);
-    min-height: 25px;
-}
-
-.captured-label {
-    color: #888;
-    font-size: clamp(10px, 1.2vmin, 14px);
-}
-
-.captured-pieces {
-    color: #ddd;
-    letter-spacing: 2px;
-    font-size: clamp(14px, 2vmin, 24px);
-}
-
 .board-wrapper {
     display: flex;
     align-items: center;
@@ -102,8 +48,8 @@ body {
     display: grid;
     grid-template-columns: repeat(8, 1fr);
     grid-template-rows: repeat(8, 1fr);
-    width: min(88vmin, 88vw, 750px);
-    height: min(88vmin, 88vw, 750px);
+    width: min(85vmin, 85vw, 700px);
+    height: min(85vmin, 85vw, 700px);
     border: 3px solid #333;
     border-radius: 6px;
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
@@ -127,7 +73,7 @@ body {
 }
 
 .piece {
-    font-size: min(10vmin, 10vw, 80px);
+    font-size: min(10vmin, 10vw, 75px);
     line-height: 1;
     font-weight: bold;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
@@ -145,22 +91,65 @@ body {
     text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.3);
 }
 
+/* ============================================
+   CAPTURED PIECES AREA
+   ============================================ */
+
+.captured-area {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: min(85vmin, 85vw, 700px);
+    padding: 5px 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+}
+
+.captured-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: clamp(14px, 2vmin, 20px);
+}
+
+.captured-player-name {
+    color: #ccc;
+    font-weight: 600;
+    min-width: 50px;
+    font-size: clamp(12px, 1.5vmin, 16px);
+}
+
+.captured-pieces {
+    color: #ddd;
+    letter-spacing: 3px;
+    font-size: clamp(16px, 2.5vmin, 28px);
+    min-height: 25px;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
 @media (max-width: 768px) {
-    body { gap: 3px; padding: 5px; }
-    .chessboard { width: 95vmin; height: 95vmin; border-width: 2px; }
+    body { gap: 4px; padding: 4px; }
+    .chessboard { width: 92vmin; height: 92vmin; border-width: 2px; }
     .piece { font-size: 11vmin; }
+    .captured-area { width: 92vmin; }
 }
 
 @media (max-width: 480px) {
-    .chessboard { width: 98vmin; height: 98vmin; border-width: 1px; }
+    .chessboard { width: 95vmin; height: 95vmin; border-width: 1px; }
     .piece { font-size: 12vmin; }
+    .captured-area { width: 95vmin; }
 }
 
 @media (min-width: 1200px) {
-    .chessboard { width: 750px; height: 750px; }
-    .piece { font-size: 75px; }
+    .chessboard { width: 700px; height: 700px; }
+    .piece { font-size: 70px; }
+    .captured-area { width: 700px; }
 }
 
 @media (display-mode: fullscreen) {
-    .chessboard { width: 90vh; height: 90vh; max-width: 90vh; max-height: 90vh; border: none; border-radius: 0; }
+    .chessboard { width: 85vh; height: 85vh; max-width: 85vh; max-height: 85vh; border: none; border-radius: 0; }
+    .captured-area { width: 85vh; }
 }
