@@ -18,27 +18,19 @@
 <body>
     <h1 class="title">DrDer-CheSS</h1>
     
-    <div class="players-info">
-        <div class="player-row">
-            <span class="player-dot white-dot"></span>
-            <span id="whitePlayer" class="player-name">Alpha</span>
-        </div>
-        <div class="captured-row">
-            <span class="captured-label">أسرى الأبيض:</span>
-            <span id="whiteCaptured" class="captured-pieces"></span>
-        </div>
-        <div class="player-row">
-            <span class="player-dot black-dot"></span>
-            <span id="blackPlayer" class="player-name">Beta</span>
-        </div>
-        <div class="captured-row">
-            <span class="captured-label">أسرى الأسود:</span>
-            <span id="blackCaptured" class="captured-pieces"></span>
-        </div>
-    </div>
-    
     <div class="board-wrapper">
         <div id="chessboard" class="chessboard"></div>
+    </div>
+    
+    <div class="captured-area">
+        <div class="captured-row">
+            <span class="captured-player-name">Alpha</span>
+            <span id="whiteCaptured" class="captured-pieces"></span>
+        </div>
+        <div class="captured-row">
+            <span class="captured-player-name">Beta</span>
+            <span id="blackCaptured" class="captured-pieces"></span>
+        </div>
     </div>
 
     <script src="chess.min.js"></script>
