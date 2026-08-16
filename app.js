@@ -1,5 +1,6 @@
 /* ============================================
-   DrDer Chess Alpha - Professional Personality System v3.2
+   DrDer Chess Alpha - Professional Personality System v3.3
+   50 Unique Openings
    ============================================ */
 
 var personalities = {
@@ -49,7 +50,10 @@ var state = {
     openingIndex: 0,
     waitingForGameReady: false,
     capturedByWhite: [],
-    capturedByBlack: []
+    capturedByBlack: [],
+    currentOpeningName: '',
+    currentOpeningNameAr: '',
+    usedOpenings: []
 };
 
 var PIECE_UNICODE = {
@@ -62,16 +66,56 @@ var PIECE_UNICODE = {
 };
 
 var OPENINGS = [
-    ['e2e4', 'e7e5', 'g1f3', 'b8c6', 'f1b5', 'a7a6', 'b5a4', 'g8f6'],
-    ['e2e4', 'c7c5', 'g1f3', 'd7d6', 'd2d4', 'c5d4', 'f3d4', 'g8f6'],
-    ['e2e4', 'e7e6', 'd2d4', 'd7d5', 'b1c3', 'g8f6', 'c1g5', 'f8e7'],
-    ['e2e4', 'c7c6', 'd2d4', 'd7d5', 'b1c3', 'd5e4', 'c3e4', 'c8f5'],
-    ['d2d4', 'd7d5', 'c2c4', 'e7e6', 'b1c3', 'g8f6', 'c1g5', 'f8e7'],
-    ['d2d4', 'g8f6', 'c2c4', 'e7e6', 'b1c3', 'f8b4', 'd1c2', 'e8g8'],
-    ['c2c4', 'e7e5', 'b1c3', 'b8c6', 'g1f3', 'g8f6', 'g2g3', 'f8b4'],
-    ['c2c4', 'e7e6', 'b1c3', 'd7d5', 'd2d4', 'g8f6', 'c1g5', 'f8e7'],
-    ['g1f3', 'd7d5', 'd2d4', 'g8f6', 'c2c4', 'e7e6', 'b1c3', 'f8e7'],
-    ['e2e4', 'd7d6', 'd2d4', 'g8f6', 'b1c3', 'g7g6', 'f2f4', 'f8g7']
+    { name: 'Ruy Lopez', nameAr: 'الروي لوبيز', moves: ['e2e4', 'e7e5', 'g1f3', 'b8c6', 'f1b5'] },
+    { name: 'Sicilian Defense', nameAr: 'الدفاع الصقلي', moves: ['e2e4', 'c7c5', 'g1f3', 'd7d6', 'd2d4'] },
+    { name: 'French Defense', nameAr: 'الدفاع الفرنسي', moves: ['e2e4', 'e7e6', 'd2d4', 'd7d5', 'b1c3'] },
+    { name: 'Caro-Kann Defense', nameAr: 'دفاع كارو-كان', moves: ['e2e4', 'c7c6', 'd2d4', 'd7d5', 'b1c3'] },
+    { name: "Queen's Gambit", nameAr: 'المناورة الوزيرية', moves: ['d2d4', 'd7d5', 'c2c4', 'e7e6', 'b1c3'] },
+    { name: 'Nimzo-Indian Defense', nameAr: 'الدفاع النيمزو-هندي', moves: ['d2d4', 'g8f6', 'c2c4', 'e7e6', 'b1c3'] },
+    { name: 'English Opening', nameAr: 'الافتتاح الإنجليزي', moves: ['c2c4', 'e7e5', 'b1c3', 'b8c6', 'g1f3'] },
+    { name: 'Catalan Opening', nameAr: 'الافتتاح الكتالوني', moves: ['d2d4', 'g8f6', 'c2c4', 'e7e6', 'g2g3'] },
+    { name: 'Pirc Defense', nameAr: 'دفاع بيرك', moves: ['e2e4', 'd7d6', 'd2d4', 'g8f6', 'b1c3'] },
+    { name: 'Italian Game', nameAr: 'اللعبة الإيطالية', moves: ['e2e4', 'e7e5', 'g1f3', 'b8c6', 'f1c4'] },
+    { name: 'Scotch Game', nameAr: 'اللعبة الاسكتلندية', moves: ['e2e4', 'e7e5', 'g1f3', 'b8c6', 'd2d4'] },
+    { name: 'Vienna Game', nameAr: 'لعبة فيينا', moves: ['e2e4', 'e7e5', 'b1c3', 'g8f6', 'f2f4'] },
+    { name: 'Petrov Defense', nameAr: 'دفاع بيتروف', moves: ['e2e4', 'e7e5', 'g1f3', 'g8f6', 'f3e5'] },
+    { name: 'Scandinavian Defense', nameAr: 'الدفاع الإسكندنافي', moves: ['e2e4', 'd7d5', 'e4d5', 'd8d5', 'b1c3'] },
+    { name: 'Modern Defense', nameAr: 'الدفاع الحديث', moves: ['e2e4', 'g7g6', 'd2d4', 'f8g7', 'b1c3'] },
+    { name: 'Alekhine Defense', nameAr: 'دفاع ألكين', moves: ['e2e4', 'g8f6', 'e4e5', 'f6d5', 'd2d4'] },
+    { name: "King's Indian Defense", nameAr: 'الدفاع الملكي الهندي', moves: ['d2d4', 'g8f6', 'c2c4', 'g7g6', 'b1c3'] },
+    { name: "Queen's Indian Defense", nameAr: 'الدفاع الوزيري الهندي', moves: ['d2d4', 'g8f6', 'c2c4', 'e7e6', 'g1f3'] },
+    { name: 'Grünfeld Defense', nameAr: 'دفاع جرونفيلد', moves: ['d2d4', 'g8f6', 'c2c4', 'g7g6', 'b1c3'] },
+    { name: 'Dutch Defense', nameAr: 'الدفاع الهولندي', moves: ['d2d4', 'f7f5', 'c2c4', 'g8f6', 'g2g3'] },
+    { name: 'London System', nameAr: 'نظام لندن', moves: ['d2d4', 'g8f6', 'g1f3', 'd7d5', 'c1f4'] },
+    { name: 'Réti Opening', nameAr: 'افتتاح ريتي', moves: ['g1f3', 'd7d5', 'c2c4', 'e7e6', 'g2g3'] },
+    { name: 'Four Knights Game', nameAr: 'لعبة الفرسان الأربعة', moves: ['e2e4', 'e7e5', 'g1f3', 'b8c6', 'b1c3'] },
+    { name: 'Slav Defense', nameAr: 'دفاع السلاف', moves: ['d2d4', 'd7d5', 'c2c4', 'c7c6', 'g1f3'] },
+    { name: 'Semi-Slav Defense', nameAr: 'دفاع شبه السلاف', moves: ['d2d4', 'd7d5', 'c2c4', 'e7e6', 'b1c3'] },
+    { name: 'Benoni Defense', nameAr: 'دفاع بينوني', moves: ['d2d4', 'g8f6', 'c2c4', 'c7c5', 'd4d5'] },
+    { name: 'Benko Gambit', nameAr: 'مناورة بينكو', moves: ['d2d4', 'g8f6', 'c2c4', 'c7c5', 'd4d5'] },
+    { name: 'Torre Attack', nameAr: 'هجوم توري', moves: ['d2d4', 'g8f6', 'g1f3', 'e7e6', 'c1g5'] },
+    { name: 'Colle System', nameAr: 'نظام كول', moves: ['d2d4', 'd7d5', 'g1f3', 'g8f6', 'e2e3'] },
+    { name: 'Trompowsky Attack', nameAr: 'هجوم ترومبوفسكي', moves: ['d2d4', 'g8f6', 'c1g5', 'e7e6', 'e2e4'] },
+    { name: 'Bird Opening', nameAr: 'افتتاح بيرد', moves: ['f2f4', 'd7d5', 'g1f3', 'g8f6', 'e2e3'] },
+    { name: "King's Gambit", nameAr: 'مناورة الملك', moves: ['e2e4', 'e7e5', 'f2f4', 'e5f4', 'g1f3'] },
+    { name: 'Evans Gambit', nameAr: 'مناورة إيفانز', moves: ['e2e4', 'e7e5', 'g1f3', 'b8c6', 'f1c4'] },
+    { name: 'Smith-Morra Gambit', nameAr: 'مناورة سميث-مورا', moves: ['e2e4', 'c7c5', 'd2d4', 'c5d4', 'c2c3'] },
+    { name: 'Alapin Variation', nameAr: 'تفريعة ألابين', moves: ['e2e4', 'c7c5', 'c2c3', 'g8f6', 'e4e5'] },
+    { name: 'Closed Sicilian', nameAr: 'الصقلي المغلق', moves: ['e2e4', 'c7c5', 'b1c3', 'b8c6', 'g2g3'] },
+    { name: 'Caro-Kann Advance', nameAr: 'كارو-كان المتقدم', moves: ['e2e4', 'c7c6', 'd2d4', 'd7d5', 'e4e5'] },
+    { name: 'French Winawer', nameAr: 'الفرنسي ويناوير', moves: ['e2e4', 'e7e6', 'd2d4', 'd7d5', 'b1c3'] },
+    { name: 'French Tarrasch', nameAr: 'الفرنسي تاراش', moves: ['e2e4', 'e7e6', 'd2d4', 'd7d5', 'b1d2'] },
+    { name: 'French Exchange', nameAr: 'الفرنسي بالتبادل', moves: ['e2e4', 'e7e6', 'd2d4', 'd7d5', 'e4d5'] },
+    { name: 'Two Knights Defense', nameAr: 'دفاع الفرسان', moves: ['e2e4', 'e7e5', 'g1f3', 'b8c6', 'f1c4'] },
+    { name: 'Philidor Defense', nameAr: 'دفاع فيليدور', moves: ['e2e4', 'e7e5', 'g1f3', 'd7d6', 'd2d4'] },
+    { name: 'Budapest Gambit', nameAr: 'مناورة بودابست', moves: ['d2d4', 'g8f6', 'c2c4', 'e7e5', 'd4e5'] },
+    { name: 'Albin Countergambit', nameAr: 'مناورة ألبين', moves: ['d2d4', 'd7d5', 'c2c4', 'e7e5', 'd4e5'] },
+    { name: 'Chigorin Defense', nameAr: 'دفاع تشيغورين', moves: ['d2d4', 'd7d5', 'c2c4', 'b8c6', 'b1c3'] },
+    { name: 'Baltic Defense', nameAr: 'دفاع البلطيق', moves: ['d2d4', 'd7d5', 'c2c4', 'c8f5', 'b1c3'] },
+    { name: 'King Fianchetto Opening', nameAr: 'افتتاح الفيانكيتو', moves: ['g2g3', 'd7d5', 'f1g2', 'g8f6', 'g1f3'] },
+    { name: 'Nimzowitsch-Larsen', nameAr: 'نيمزوفيتش-لارسن', moves: ['b2b3', 'd7d5', 'c1b2', 'g8f6', 'e2e3'] },
+    { name: 'Kings Indian Attack', nameAr: 'الهجوم الهندي الملكي', moves: ['g1f3', 'd7d5', 'g2g3', 'g8f6', 'f1g2'] },
+    { name: 'Barcza Opening', nameAr: 'افتتاح بارتسا', moves: ['g1f3', 'd7d5', 'g2g3', 'g8f6', 'f1g2'] }
 ];
 
 var SEARCH_TIMEOUT = 12000;
@@ -97,6 +141,7 @@ function initEmptyBoard() {
     state.capturedByBlack = [];
     drawBoard();
     updateCapturedDisplay();
+    updateOpeningDisplay();
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -563,13 +608,44 @@ function prepareMatch() {
     });
 }
 
+function selectOpening() {
+    var available = [];
+    for (var i = 0; i < OPENINGS.length; i++) {
+        if (state.usedOpenings.indexOf(i) === -1) {
+            available.push(i);
+        }
+    }
+    
+    if (available.length === 0) {
+        state.usedOpenings = [];
+        for (var j = 0; j < OPENINGS.length; j++) {
+            available.push(j);
+        }
+    }
+    
+    var idx = available[Math.floor(Math.random() * available.length)];
+    state.usedOpenings.push(idx);
+    return OPENINGS[idx];
+}
+
 function startMatch() {
     state.isMatchRunning = true;
     state.openingIndex = 0;
-    state.openingMoves = OPENINGS[Math.floor(Math.random() * OPENINGS.length)];
+    var opening = selectOpening();
+    state.openingMoves = opening.moves;
+    state.currentOpeningName = opening.name;
+    state.currentOpeningNameAr = opening.nameAr;
     drawBoard();
     updateCapturedDisplay();
+    updateOpeningDisplay();
     scheduleNextMove();
+}
+
+function updateOpeningDisplay() {
+    var el = document.getElementById('openingName');
+    if (el) {
+        el.textContent = state.currentOpeningNameAr + ' - ' + state.currentOpeningName;
+    }
 }
 
 function endMatch() {
