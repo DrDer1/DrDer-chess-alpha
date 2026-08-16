@@ -142,7 +142,6 @@ function initAudio() {
 }
 
 function playMoveSound() {
-    initAudio();
     if (!state.audioCtx) return;
     var ctx = state.audioCtx;
     var osc = ctx.createOscillator();
@@ -159,7 +158,6 @@ function playMoveSound() {
 }
 
 function playCaptureSound() {
-    initAudio();
     if (!state.audioCtx) return;
     var ctx = state.audioCtx;
     var osc = ctx.createOscillator();
@@ -176,7 +174,6 @@ function playCaptureSound() {
 }
 
 function playCheckSound() {
-    initAudio();
     if (!state.audioCtx) return;
     var ctx = state.audioCtx;
     var osc = ctx.createOscillator();
@@ -193,7 +190,6 @@ function playCheckSound() {
 }
 
 function playPromotionSound() {
-    initAudio();
     if (!state.audioCtx) return;
     var ctx = state.audioCtx;
     var osc = ctx.createOscillator();
@@ -226,6 +222,19 @@ function initEmptyBoard() {
 
 document.addEventListener('DOMContentLoaded', function() {
     initEmptyBoard();
+    
+    var soundBtn = document.getElementById('enableSound');
+    if (soundBtn) {
+        soundBtn.addEventListener('click', function() {
+            initAudio();
+            if (state.audioCtx && state.audioCtx.state === 'suspended') {
+                state.audioCtx.resume();
+            }
+            this.textContent = '🔊 الصوت مفعل';
+            this.style.display = 'none';
+        });
+    }
+    
     startSystem();
 });
 
@@ -446,7 +455,6 @@ function handleBestmove(playerName, msg, worker) {
         if (move) {
             state.gameHistory.push(move);
             
-            // تشغيل الصوت المناسب
             if (move.flags && move.flags.indexOf('p') !== -1) {
                 playPromotionSound();
             } else if (move.captured) {
