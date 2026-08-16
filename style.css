@@ -24,7 +24,7 @@ body {
     justify-content: flex-start;
     background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
     padding: 10px;
-    gap: 8px;
+    gap: 5px;
 }
 
 .title {
@@ -33,30 +33,27 @@ body {
     font-weight: 700;
     letter-spacing: 3px;
     text-align: center;
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.4), 0 0 40px rgba(255, 255, 255, 0.2);
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
     user-select: none;
     -webkit-user-select: none;
-    margin-top: 5px;
 }
 
 .players-info {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
-    gap: 30px;
+    gap: 5px;
     width: 100%;
     max-width: 750px;
 }
 
-.player {
+.player-row {
     display: flex;
     align-items: center;
     gap: 8px;
     font-size: clamp(14px, 2vmin, 20px);
     font-weight: 600;
     color: #cccccc;
-    user-select: none;
-    -webkit-user-select: none;
 }
 
 .player-dot {
@@ -64,7 +61,6 @@ body {
     height: 12px;
     border-radius: 50%;
     display: inline-block;
-    box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
 }
 
 .white-dot {
@@ -75,15 +71,25 @@ body {
 .black-dot {
     background-color: #000000;
     border: 2px solid #555;
-    box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+}
+
+.captured-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: clamp(12px, 1.5vmin, 18px);
+    min-height: 25px;
+}
+
+.captured-label {
+    color: #888;
+    font-size: clamp(10px, 1.2vmin, 14px);
 }
 
 .captured-pieces {
-    font-size: clamp(12px, 1.5vmin, 18px);
-    color: #aaa;
-    min-height: 20px;
-    margin-right: 5px;
+    color: #ddd;
     letter-spacing: 2px;
+    font-size: clamp(14px, 2vmin, 24px);
 }
 
 .board-wrapper {
@@ -96,11 +102,11 @@ body {
     display: grid;
     grid-template-columns: repeat(8, 1fr);
     grid-template-rows: repeat(8, 1fr);
-    width: min(90vmin, 90vw, 750px);
-    height: min(90vmin, 90vw, 750px);
+    width: min(88vmin, 88vw, 750px);
+    height: min(88vmin, 88vw, 750px);
     border: 3px solid #333;
     border-radius: 6px;
-    box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
     overflow: hidden;
 }
 
@@ -108,7 +114,6 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    position: relative;
     user-select: none;
     -webkit-user-select: none;
 }
@@ -141,16 +146,14 @@ body {
 }
 
 @media (max-width: 768px) {
-    body { gap: 5px; padding: 5px; }
+    body { gap: 3px; padding: 5px; }
     .chessboard { width: 95vmin; height: 95vmin; border-width: 2px; }
     .piece { font-size: 11vmin; }
-    .players-info { gap: 20px; }
 }
 
 @media (max-width: 480px) {
     .chessboard { width: 98vmin; height: 98vmin; border-width: 1px; }
     .piece { font-size: 12vmin; }
-    .players-info { gap: 15px; }
 }
 
 @media (min-width: 1200px) {
@@ -160,15 +163,4 @@ body {
 
 @media (display-mode: fullscreen) {
     .chessboard { width: 90vh; height: 90vh; max-width: 90vh; max-height: 90vh; border: none; border-radius: 0; }
-}
-
-@media (max-width: 900px) and (orientation: landscape) {
-    body { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 10px; }
-    .title { font-size: 3vh; }
-    .chessboard { width: 85vh; height: 85vh; }
-}
-
-@media print {
-    body { background: white; }
-    .chessboard { box-shadow: none; border: 1px solid #000; }
 }
