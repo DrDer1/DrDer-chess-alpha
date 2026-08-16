@@ -1,6 +1,5 @@
 /* ============================================
    DrDer Chess Alpha - Professional Personality System v3.3
-   50 Unique Openings
    ============================================ */
 
 var personalities = {
@@ -53,7 +52,8 @@ var state = {
     capturedByBlack: [],
     currentOpeningName: '',
     currentOpeningNameAr: '',
-    usedOpenings: []
+    usedOpenings: [],
+    audioCtx: null
 };
 
 var PIECE_UNICODE = {
@@ -127,6 +127,86 @@ function log(tag, msg) {
     if (DEBUG && typeof console !== 'undefined') {
         console.log('[DrDer][' + tag + '] ' + msg);
     }
+}
+
+// ============================================
+// نظام الصوت
+// ============================================
+
+function initAudio() {
+    if (!state.audioCtx) {
+        try {
+            state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        } catch(e) {}
+    }
+}
+
+function playMoveSound() {
+    initAudio();
+    if (!state.audioCtx) return;
+    var ctx = state.audioCtx;
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(400, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.08);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.1);
+}
+
+function playCaptureSound() {
+    initAudio();
+    if (!state.audioCtx) return;
+    var ctx = state.audioCtx;
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(300, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.12);
+    gain.gain.setValueAtTime(0.35, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.15);
+}
+
+function playCheckSound() {
+    initAudio();
+    if (!state.audioCtx) return;
+    var ctx = state.audioCtx;
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(600, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.15);
+    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.18);
+}
+
+function playPromotionSound() {
+    initAudio();
+    if (!state.audioCtx) return;
+    var ctx = state.audioCtx;
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(500, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.15);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.22);
 }
 
 // ============================================
@@ -365,6 +445,18 @@ function handleBestmove(playerName, msg, worker) {
         var move = state.currentGame.move(chosenMove, { sloppy: true });
         if (move) {
             state.gameHistory.push(move);
+            
+            // تشغيل الصوت المناسب
+            if (move.flags && move.flags.indexOf('p') !== -1) {
+                playPromotionSound();
+            } else if (move.captured) {
+                playCaptureSound();
+            } else if (move.san && move.san.indexOf('+') !== -1) {
+                playCheckSound();
+            } else {
+                playMoveSound();
+            }
+            
             if (move.captured) {
                 if (move.color === 'w') {
                     state.capturedByWhite.push(move.captured);
@@ -532,6 +624,15 @@ function makeNextMove() {
             var move = state.currentGame.move(openingMove, { sloppy: true });
             if (move) {
                 state.gameHistory.push(move);
+                
+                if (move.flags && move.flags.indexOf('p') !== -1) {
+                    playPromotionSound();
+                } else if (move.captured) {
+                    playCaptureSound();
+                } else {
+                    playMoveSound();
+                }
+                
                 if (move.captured) {
                     if (move.color === 'w') {
                         state.capturedByWhite.push(move.captured);
