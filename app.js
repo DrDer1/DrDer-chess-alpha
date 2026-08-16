@@ -1,19 +1,24 @@
 /* ============================================
-   DrDer Chess Alpha - Professional Personality System v3.5
+   DrDer Chess Alpha - Professional Personality System v3.7
+   Refined Tactical vs Strategic Personalities
    ============================================ */
 
 var personalities = {
     alpha: {
         name: 'ALPHA',
         type: 'TACTICAL AI',
-        aggression: 0.90,
-        kingAttack: 0.90,
-        tacticalRisk: 0.75,
-        sacrifice: 0.65,
-        pieceActivity: 0.85,
+        aggression: 0.95,
+        kingAttack: 0.95,
+        tacticalRisk: 0.80,
+        sacrifice: 0.70,
+        pieceActivity: 0.90,
         defense: 0.35,
-        endgame: 0.50,
-        drawAvoidance: 0.85
+        endgame: 0.55,
+        drawAvoidance: 0.90,
+        depth: 25,
+        movetime: 8000,
+        multiPV: 4,
+        threshold: 50
     },
     beta: {
         name: 'BETA',
@@ -22,10 +27,14 @@ var personalities = {
         kingAttack: 0.50,
         tacticalRisk: 0.25,
         sacrifice: 0.10,
-        pieceActivity: 0.75,
-        defense: 0.90,
-        endgame: 0.90,
-        drawAvoidance: 0.65
+        pieceActivity: 0.80,
+        defense: 0.95,
+        endgame: 0.95,
+        drawAvoidance: 0.70,
+        depth: 23,
+        movetime: 8000,
+        multiPV: 4,
+        threshold: 40
     }
 };
 
@@ -54,6 +63,7 @@ var state = {
     currentOpeningNameAr: '',
     usedOpenings: [],
     soundEnabled: true,
+    matchCount: 0,
     audioFiles: {
         move: 'move.mp3',
         capture: 'capture.mp3',
@@ -125,8 +135,8 @@ var OPENINGS = [
     { name: 'Barcza Opening', nameAr: 'افتتاح بارتسا', moves: ['g1f3', 'd7d5', 'g2g3', 'g8f6', 'f1g2'] }
 ];
 
-var SEARCH_TIMEOUT = 12000;
-var MAX_EVAL_LOSS = 50;
+var SEARCH_TIMEOUT = 14000;
+var MAX_EVAL_LOSS = 40;
 var MATE_SCORE = 100000;
 var DEBUG = false;
 
@@ -137,7 +147,7 @@ function log(tag, msg) {
 }
 
 // ============================================
-// نظام الصوت - ملفات MP3 حقيقية
+// نظام الصوت
 // ============================================
 
 function playSound(soundName) {
@@ -433,7 +443,7 @@ function handleBestmove(playerName, msg, worker) {
 }
 
 // ============================================
-// selectBestMove
+// selectBestMove - نظام شخصية محسّن
 // ============================================
 
 function selectBestMove(playerName, bestMove, candidates, game) {
@@ -456,6 +466,7 @@ function selectBestMove(playerName, bestMove, candidates, game) {
     valid.sort(function(a, b) { return b.score - a.score; });
     var bestScore = valid[0].score;
 
+    // فلترة صارمة: لا نسمح باختيار نقلة أضعف من MAX_EVAL_LOSS
     var filtered = [];
     for (var j = 0; j < valid.length; j++) {
         var v = valid[j];
@@ -465,11 +476,17 @@ function selectBestMove(playerName, bestMove, candidates, game) {
     if (filtered.length === 0) return valid[0].move;
     if (filtered.length === 1) return filtered[0].move;
 
+    // حساب الدرجة النهائية مع شخصية محسّنة
     var scored = [];
     for (var k = 0; k < filtered.length; k++) {
         var cand = filtered[k];
         var eq = calcEngineQuality(cand, bestScore);
-        var pb = (playerName === 'alpha') ? evalAlpha(cand, game) : evalBeta(cand, game);
+        var pb;
+        if (playerName === 'alpha') {
+            pb = evalAlphaEnhanced(cand, game);
+        } else {
+            pb = evalBetaEnhanced(cand, game);
+        }
         scored.push({ move: cand.move, final: eq + pb, san: cand.san, engine: cand.score });
     }
     scored.sort(function(a, b) { return b.final - a.final; });
@@ -481,62 +498,172 @@ function calcEngineQuality(cand, bestScore) {
     if (cand.isMate && cand.mateIn < 0) return -2000;
     var loss = bestScore - cand.score;
     if (loss <= 0) return 1000;
-    var quality = 1000 - (loss * 5);
+    var quality = 1000 - (loss * 8); // أكثر صرامة: loss 40 = 680
     return Math.max(0, quality);
 }
 
-function simulateMove(moveStr, game) {
-    try {
-        var move = game.move(moveStr, { sloppy: true });
-        if (move) { game.undo(); return move; }
-    } catch(e) {}
-    return null;
-}
+// ============================================
+// Alpha Enhanced - تكتيكي محسّن
+// ============================================
 
-function evalAlpha(cand, game) {
-    var b = 0, p = personalities.alpha;
-    if (cand.isCheck) b += Math.round(12 * p.aggression);
-    if (cand.captured) b += Math.round(10 * p.tacticalRisk);
-    if (cand.captured && cand.piece !== 'p' && cand.captured !== 'p') b += Math.round(8 * p.tacticalRisk);
-    if (cand.captured && cand.piece === 'p' && (cand.captured === 'n' || cand.captured === 'b')) b += Math.round(6 * p.sacrifice);
-    if (cand.piece === 'q' || cand.piece === 'r') b += Math.round(5 * p.pieceActivity);
+function evalAlphaEnhanced(cand, game) {
+    var bonus = 0;
+    var p = personalities.alpha;
 
+    // Check
+    if (cand.isCheck) bonus += 15;
+
+    // Capture
+    if (cand.captured) bonus += 10;
+
+    // Sacrifice
+    if (cand.captured && cand.piece === 'p' && (cand.captured === 'n' || cand.captured === 'b')) bonus += 8;
+
+    // Piece Activity
+    if (cand.piece === 'q' || cand.piece === 'r') bonus += 5;
+
+    // تحليل الوضع بعد النقلة
     try {
         var move = game.move(cand.move, { sloppy: true });
         if (move) {
-            var board = game.board(), turn = game.turn();
-            var oppColor = turn, myColor = turn === 'w' ? 'b' : 'w';
+            var board = game.board();
+            var turn = game.turn();
+            var oppColor = turn;
+            var myColor = turn === 'w' ? 'b' : 'w';
+            
+            // Attack King
             var oppKing = findKing(board, oppColor);
-            if (oppKing && countAttackers(game, oppKing, myColor) >= 2) b += Math.round(6 * p.kingAttack);
-            if (game.moves().length >= 35) b += Math.round(4 * p.pieceActivity);
+            if (oppKing && countAttackers(game, oppKing, myColor) >= 2) bonus += 10;
+            
+            // Pawn Storm (بيادق متقدمة)
+            var advancedPawns = countAdvancedPawns(board, myColor);
+            bonus += advancedPawns * 2;
+            
             game.undo();
         }
     } catch(e) {}
 
-    if (cand.isMate && cand.mateIn > 0) b += 500;
-    return b;
+    // خصم النقلات السلبية
+    if (!cand.captured && !cand.isCheck && cand.piece === 'p' && parseInt(cand.to.charAt(1)) <= 3) {
+        bonus -= 5; // نقلات بيدق سلبية
+    }
+
+    // خصم التكرار
+    if (state.gameHistory.length > 6) {
+        var lastMoves = state.gameHistory.slice(-6);
+        for (var i = 0; i < lastMoves.length; i++) {
+            if (lastMoves[i].san === cand.san) bonus -= 3;
+        }
+    }
+
+    // كش مات
+    if (cand.isMate && cand.mateIn > 0) bonus += 500;
+
+    return bonus;
 }
 
-function evalBeta(cand, game) {
-    var b = 0, p = personalities.beta;
-    if (cand.isCastle) b += Math.round(12 * p.defense);
-    if ((cand.piece === 'n' || cand.piece === 'b') && !cand.captured) b += Math.round(7 * p.pieceActivity);
-    if (cand.piece === 'p' && !cand.captured) b += Math.round(3 * p.defense);
-    if (cand.isCheck && !cand.captured) b -= Math.round(5 * (1 - p.tacticalRisk));
+// ============================================
+// Beta Enhanced - استراتيجي محسّن
+// ============================================
 
+function evalBetaEnhanced(cand, game) {
+    var bonus = 0;
+    var p = personalities.beta;
+
+    // Castling (سلامة الملك)
+    if (cand.isCastle) bonus += 15;
+
+    // تطوير القطع
+    if ((cand.piece === 'n' || cand.piece === 'b') && !cand.captured) bonus += 8;
+
+    // بنية البيادق
+    if (cand.piece === 'p' && !cand.captured) bonus += 3;
+
+    // تحليل الوضع بعد النقلة
     try {
         var move = game.move(cand.move, { sloppy: true });
         if (move) {
-            var board = game.board(), turn = game.turn();
-            var myColor = turn, oppColor = turn === 'w' ? 'b' : 'w';
+            var board = game.board();
+            var turn = game.turn();
+            var myColor = turn;
+            var oppColor = turn === 'w' ? 'b' : 'w';
+            
+            // سلامة ملكنا
             var myKing = findKing(board, myColor);
-            if (myKing && countAttackers(game, myKing, oppColor) === 0) b += Math.round(5 * p.defense);
+            if (myKing && countAttackers(game, myKing, oppColor) === 0) bonus += 8;
+            
+            // البيادق المعزولة/المضاعفة
+            var pawnWeaknesses = countPawnWeaknesses(board, myColor);
+            bonus -= pawnWeaknesses * 2;
+            
             game.undo();
         }
     } catch(e) {}
 
-    if (cand.isMate && cand.mateIn > 0) b += 500;
-    return b;
+    // خصم التضحيات غير الضرورية
+    if (cand.captured && cand.piece !== 'p' && cand.captured === 'p') {
+        bonus -= 10;
+    }
+
+    // خصم الكش غير المدعوم
+    if (cand.isCheck && !cand.captured) {
+        bonus -= 4;
+    }
+
+    // كش مات
+    if (cand.isMate && cand.mateIn > 0) bonus += 500;
+
+    return bonus;
+}
+
+// ============================================
+// دوال مساعدة للتحليل المتقدم
+// ============================================
+
+function countAdvancedPawns(board, color) {
+    var count = 0;
+    for (var r = 0; r < 8; r++) {
+        for (var c = 0; c < 8; c++) {
+            var piece = board[r][c];
+            if (piece && piece.type === 'p' && piece.color === color) {
+                if (color === 'w' && r <= 3) count++;
+                if (color === 'b' && r >= 4) count++;
+            }
+        }
+    }
+    return count;
+}
+
+function countPawnWeaknesses(board, color) {
+    var count = 0;
+    var files = [0, 0, 0, 0, 0, 0, 0, 0];
+    
+    // عد البيادق في كل عمود
+    for (var r = 0; r < 8; r++) {
+        for (var c = 0; c < 8; c++) {
+            var piece = board[r][c];
+            if (piece && piece.type === 'p' && piece.color === color) {
+                files[c]++;
+            }
+        }
+    }
+    
+    // البيادق المضاعفة
+    for (var i = 0; i < 8; i++) {
+        if (files[i] > 1) count += (files[i] - 1);
+    }
+    
+    // البيادق المعزولة
+    for (var j = 0; j < 8; j++) {
+        if (files[j] > 0) {
+            var isolated = true;
+            if (j > 0 && files[j - 1] > 0) isolated = false;
+            if (j < 7 && files[j + 1] > 0) isolated = false;
+            if (isolated) count++;
+        }
+    }
+    
+    return count;
 }
 
 function findKing(board, color) {
@@ -560,6 +687,14 @@ function countAttackers(game, target, attackerColor) {
         }
     }
     return count;
+}
+
+function simulateMove(moveStr, game) {
+    try {
+        var move = game.move(moveStr, { sloppy: true });
+        if (move) { game.undo(); return move; }
+    } catch(e) {}
+    return null;
 }
 
 // ============================================
@@ -621,7 +756,7 @@ function makeNextMove() {
 
     var fen = state.currentGame.fen();
     worker.postMessage('position fen ' + fen);
-    worker.postMessage('go movetime 7000');
+    worker.postMessage('go depth ' + personalities[playerName].depth + ' movetime ' + personalities[playerName].movetime);
 
     if (state.watchdogTimer) clearTimeout(state.watchdogTimer);
     state.watchdogTimer = setTimeout(function() {
@@ -656,6 +791,7 @@ function prepareMatch() {
     state.waitingForGameReady = true;
     state.capturedByWhite = [];
     state.capturedByBlack = [];
+    state.matchCount++;
 
     ['alpha', 'beta'].forEach(function(name) {
         var w = state.workers[name];
