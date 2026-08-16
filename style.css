@@ -23,8 +23,8 @@ body {
     align-items: center;
     justify-content: flex-start;
     background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
-    padding: 6px;
-    gap: 4px;
+    padding: 4px;
+    gap: 3px;
 }
 
 .sound-btn {
@@ -44,7 +44,7 @@ body {
 
 .title {
     color: #ffffff;
-    font-size: clamp(16px, 2.5vmin, 26px);
+    font-size: clamp(14px, 2vmin, 22px);
     font-weight: 700;
     letter-spacing: 2px;
     text-align: center;
@@ -57,16 +57,16 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 20px;
+    gap: 15px;
     width: 100%;
-    max-width: 800px;
+    max-width: 850px;
 }
 
 .player-info {
     display: flex;
     align-items: center;
     gap: 5px;
-    font-size: clamp(12px, 1.6vmin, 16px);
+    font-size: clamp(11px, 1.4vmin, 14px);
     color: #ccc;
     font-weight: 600;
     user-select: none;
@@ -74,8 +74,8 @@ body {
 }
 
 .dot {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     display: inline-block;
 }
@@ -92,7 +92,7 @@ body {
 
 .color-label {
     color: #888;
-    font-size: clamp(10px, 1.2vmin, 13px);
+    font-size: clamp(9px, 1vmin, 11px);
 }
 
 .player-name {
@@ -100,17 +100,17 @@ body {
 }
 
 /* ============================================
-   CHESSBOARD - حجم أكبر
+   CHESSBOARD - أكبر حجم ممكن
    ============================================ */
 
 .board-wrapper {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 800px;
-    height: 800px;
-    max-width: 88vw;
-    max-height: 88vw;
+    width: 850px;
+    height: 850px;
+    max-width: 92vw;
+    max-height: 92vw;
 }
 
 .chessboard {
@@ -144,7 +144,7 @@ body {
 }
 
 .piece {
-    font-size: 80px;
+    font-size: 85px;
     line-height: 1;
     font-weight: bold;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
@@ -170,10 +170,10 @@ body {
 .captured-area {
     display: flex;
     flex-direction: column;
-    gap: 3px;
-    width: 800px;
-    max-width: 88vw;
-    padding: 4px 8px;
+    gap: 2px;
+    width: 850px;
+    max-width: 92vw;
+    padding: 3px 8px;
     background: rgba(0, 0, 0, 0.3);
     border-radius: 6px;
 }
@@ -182,22 +182,22 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: clamp(12px, 1.8vmin, 16px);
-    min-height: 22px;
+    font-size: clamp(11px, 1.6vmin, 14px);
+    min-height: 20px;
 }
 
 .captured-player-name {
     color: #ccc;
     font-weight: 600;
-    min-width: 40px;
-    font-size: clamp(10px, 1.3vmin, 14px);
+    min-width: 35px;
+    font-size: clamp(9px, 1.2vmin, 12px);
 }
 
 .captured-pieces {
     color: #ddd;
     letter-spacing: 2px;
-    font-size: clamp(16px, 2.2vmin, 26px);
-    min-height: 22px;
+    font-size: clamp(14px, 2vmin, 24px);
+    min-height: 20px;
 }
 
 /* ============================================
@@ -205,15 +205,15 @@ body {
    ============================================ */
 
 .opening-display {
-    width: 800px;
-    max-width: 88vw;
+    width: 850px;
+    max-width: 92vw;
     text-align: center;
-    padding: 3px;
+    padding: 2px;
 }
 
 .opening-name {
     color: #ffd700;
-    font-size: clamp(12px, 1.6vmin, 18px);
+    font-size: clamp(11px, 1.4vmin, 16px);
     font-weight: 600;
     letter-spacing: 1px;
     text-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
@@ -227,32 +227,32 @@ body {
 
 @media (max-width: 768px) {
     .board-wrapper {
-        width: 90vmin;
-        height: 90vmin;
+        width: 93vmin;
+        height: 93vmin;
     }
     .piece {
-        font-size: 11vmin;
+        font-size: 11.5vmin;
     }
     .captured-area {
-        width: 90vmin;
+        width: 93vmin;
     }
     .opening-display {
-        width: 90vmin;
+        width: 93vmin;
     }
 }
 
 @media (max-width: 480px) {
     .board-wrapper {
-        width: 95vmin;
-        height: 95vmin;
+        width: 96vmin;
+        height: 96vmin;
     }
     .piece {
         font-size: 12vmin;
     }
     .captured-area {
-        width: 95vmin;
+        width: 96vmin;
     }
     .opening-display {
-        width: 95vmin;
+        width: 96vmin;
     }
 }
