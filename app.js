@@ -53,12 +53,12 @@ var state = {
 };
 
 var PIECE_UNICODE = {
-    p: '♟',
-    n: '♞',
-    b: '♝',
-    r: '♜',
-    q: '♛',
-    k: '♚'
+    p: '\u265F',
+    n: '\u265E',
+    b: '\u265D',
+    r: '\u265C',
+    q: '\u265B',
+    k: '\u265A'
 };
 
 var OPENINGS = [
@@ -101,8 +101,6 @@ function initEmptyBoard() {
 
 document.addEventListener('DOMContentLoaded', function() {
     initEmptyBoard();
-    document.getElementById('whitePlayer').textContent = 'Alpha';
-    document.getElementById('blackPlayer').textContent = 'Beta';
     startSystem();
 });
 
@@ -553,9 +551,6 @@ function prepareMatch() {
     state.waitingForGameReady = true;
     state.capturedByWhite = [];
     state.capturedByBlack = [];
-
-    document.getElementById('whitePlayer').textContent = state.alphaColor === 'w' ? 'Alpha' : 'Beta';
-    document.getElementById('blackPlayer').textContent = state.alphaColor === 'w' ? 'Beta' : 'Alpha';
 
     ['alpha', 'beta'].forEach(function(name) {
         var w = state.workers[name];
