@@ -1,6 +1,6 @@
 /* ============================================
-   DrDer Chess Alpha - Professional Personality System v3.8
-   Visual Move Tracking + Anti-Repeat
+   DrDer Chess Alpha - Professional Personality System v3.9
+   With Start Screen + Match Transition
    ============================================ */
 
 var personalities = {
@@ -186,7 +186,23 @@ function initEmptyBoard() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    initEmptyBoard();
+    document.getElementById('startScreen').style.display = 'flex';
+    document.getElementById('gameScreen').style.display = 'none';
+    
+    var startBtn = document.getElementById('startBtn');
+    if (startBtn) {
+        startBtn.addEventListener('click', function() {
+            startBtn.style.display = 'none';
+            document.getElementById('loadingMessage').style.display = 'block';
+            
+            setTimeout(function() {
+                document.getElementById('startScreen').style.display = 'none';
+                document.getElementById('gameScreen').style.display = 'flex';
+                initEmptyBoard();
+                startSystem();
+            }, 5000);
+        });
+    }
     
     var soundBtn = document.getElementById('toggleSound');
     if (soundBtn) {
@@ -195,8 +211,6 @@ document.addEventListener('DOMContentLoaded', function() {
             this.textContent = state.soundEnabled ? '🔊' : '🔇';
         });
     }
-    
-    startSystem();
 });
 
 function startSystem() {
@@ -416,8 +430,6 @@ function handleBestmove(playerName, msg, worker) {
         if (move) {
             state.gameHistory.push(move);
             state.lastMove = move;
-            
-            // تتبع آخر 20 حركة لمنع التكرار
             state.recentMoves.push(move.san);
             if (state.recentMoves.length > 20) state.recentMoves.shift();
             
@@ -452,20 +464,18 @@ function handleBestmove(playerName, msg, worker) {
 }
 
 // ============================================
-// إبراز الحركة بصرياً
+// إبراز الحركة
 // ============================================
 
 function highlightMove(move) {
     var from = move.from;
     var to = move.to;
     
-    // إزالة التظليل القديم
     var oldHighlights = document.querySelectorAll('.move-highlight');
     for (var i = 0; i < oldHighlights.length; i++) {
         oldHighlights[i].classList.remove('move-highlight');
     }
     
-    // تظليل مربع البداية والنهاية
     var squares = document.querySelectorAll('.square');
     for (var j = 0; j < squares.length; j++) {
         var sq = squares[j];
@@ -488,7 +498,6 @@ function selectBestMove(playerName, bestMove, candidates, game) {
         var mo = simulateMove(c.move, game);
         if (!mo) continue;
         
-        // منع تكرار نفس الحركة إذا كانت في recentMoves
         if (state.recentMoves.indexOf(mo.san) !== -1) {
             continue;
         }
@@ -727,6 +736,9 @@ function prepareMatch() {
     state.lastMove = null;
     state.matchCount++;
 
+    document.getElementById('whitePlayer').textContent = state.alphaColor === 'w' ? 'Alpha' : 'Beta';
+    document.getElementById('blackPlayer').textContent = state.alphaColor === 'w' ? 'Beta' : 'Alpha';
+
     ['alpha', 'beta'].forEach(function(name) {
         var w = state.workers[name];
         if (w && w.ready) {
@@ -791,7 +803,32 @@ function endMatch() {
     if (state.workers.alpha) { try { state.workers.alpha.postMessage('stop'); } catch(e) {} state.workers.alpha.searching = false; }
     if (state.workers.beta) { try { state.workers.beta.postMessage('stop'); } catch(e) {} state.workers.beta.searching = false; }
 
-    state.matchTransitionTimer = setTimeout(function() { state.matchTransitionTimer = null; prepareMatch(); }, 800);
+    showMatchTransition();
+}
+
+function showMatchTransition() {
+    var transitionEl = document.getElementById('matchTransition');
+    var countdownEl = document.getElementById('countdownNumber');
+    
+    if (transitionEl) {
+        transitionEl.style.display = 'flex';
+    }
+    
+    var count = 5;
+    if (countdownEl) countdownEl.textContent = count;
+    
+    if (state.matchTransitionTimer) clearInterval(state.matchTransitionTimer);
+    state.matchTransitionTimer = setInterval(function() {
+        count--;
+        if (count > 0) {
+            if (countdownEl) countdownEl.textContent = count;
+        } else {
+            clearInterval(state.matchTransitionTimer);
+            state.matchTransitionTimer = null;
+            if (transitionEl) transitionEl.style.display = 'none';
+            prepareMatch();
+        }
+    }, 1000);
 }
 
 // ============================================
