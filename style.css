@@ -118,6 +118,8 @@ body {
     -webkit-user-select: none;
     min-width: 0;
     min-height: 0;
+    position: relative;
+    transition: background 0.3s ease;
 }
 
 .square.light {
@@ -126,6 +128,12 @@ body {
 
 .square.dark {
     background: linear-gradient(135deg, #6b4423 0%, #5a3a1a 100%);
+}
+
+/* تظليل حركة القطعة */
+.square.move-highlight {
+    box-shadow: inset 0 0 20px rgba(255, 255, 0, 0.7);
+    background: linear-gradient(135deg, #f5d76e 0%, #f1c40f 100%);
 }
 
 .piece {
@@ -207,7 +215,7 @@ body {
 }
 
 /* ============================================
-   SOUND BUTTON - أسفل الشاشة
+   SOUND BUTTON
    ============================================ */
 
 .sound-btn {
