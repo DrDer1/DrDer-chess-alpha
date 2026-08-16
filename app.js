@@ -47,7 +47,9 @@ var state = {
     colorSwap: false,
     openingMoves: [],
     openingIndex: 0,
-    waitingForGameReady: false
+    waitingForGameReady: false,
+    capturedByWhite: [],
+    capturedByBlack: []
 };
 
 var OPENINGS = [
@@ -82,7 +84,10 @@ function initEmptyBoard() {
     state.currentGame = new Chess();
     state.gameHistory = [];
     state.currentTurn = 'w';
+    state.capturedByWhite = [];
+    state.capturedByBlack = [];
     drawBoard();
+    updateCapturedDisplay();
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -150,7 +155,6 @@ function createWorker(name, path) {
         if (msg.indexOf('readyok') !== -1) {
             if (!worker.ready) {
                 worker.ready = true;
-                // لا نستدعي onWorkerReady هنا - فقط التهيئة الأولى
                 return;
             }
             worker.gameReady = true;
@@ -309,8 +313,16 @@ function handleBestmove(playerName, msg, worker) {
         var move = state.currentGame.move(chosenMove, { sloppy: true });
         if (move) {
             state.gameHistory.push(move);
+            if (move.captured) {
+                if (move.color === 'w') {
+                    state.capturedByWhite.push(move.captured);
+                } else {
+                    state.capturedByBlack.push(move.captured);
+                }
+            }
             state.currentTurn = state.currentGame.turn();
             drawBoard();
+            updateCapturedDisplay();
             if (state.currentGame.game_over()) { endMatch(); }
             else { scheduleNextMove(); }
         } else { scheduleNextMove(); }
@@ -461,7 +473,7 @@ function makeNextMove() {
     if (state.searchActive) return;
     if (!state.currentGame || state.currentGame.game_over()) { endMatch(); return; }
 
-    // الافتتاحية - نقلة نقلة
+    // الافتتاحية - نقلة نقلة مع تفكير
     if (state.openingIndex < state.openingMoves.length) {
         var openingMove = state.openingMoves[state.openingIndex];
         state.openingIndex++;
@@ -469,11 +481,21 @@ function makeNextMove() {
             var move = state.currentGame.move(openingMove, { sloppy: true });
             if (move) {
                 state.gameHistory.push(move);
+                if (move.captured) {
+                    if (move.color === 'w') {
+                        state.capturedByWhite.push(move.captured);
+                    } else {
+                        state.capturedByBlack.push(move.captured);
+                    }
+                }
                 state.currentTurn = state.currentGame.turn();
                 drawBoard();
+                updateCapturedDisplay();
             }
         } catch(e) {}
-        scheduleNextMove();
+        // تأخير أطول للافتتاحية - 1.5 ثانية بين كل حركة
+        if (state.nextMoveTimer) clearTimeout(state.nextMoveTimer);
+        state.nextMoveTimer = setTimeout(function() { state.nextMoveTimer = null; makeNextMove(); }, 1500);
         return;
     }
 
@@ -523,6 +545,8 @@ function prepareMatch() {
     state.alphaColor = state.colorSwap ? 'b' : 'w';
     state.betaColor = state.colorSwap ? 'w' : 'b';
     state.waitingForGameReady = true;
+    state.capturedByWhite = [];
+    state.capturedByBlack = [];
 
     document.getElementById('whitePlayer').textContent = state.alphaColor === 'w' ? 'Alpha' : 'Beta';
     document.getElementById('blackPlayer').textContent = state.alphaColor === 'w' ? 'Beta' : 'Alpha';
@@ -543,6 +567,7 @@ function startMatch() {
     state.openingIndex = 0;
     state.openingMoves = OPENINGS[Math.floor(Math.random() * OPENINGS.length)];
     drawBoard();
+    updateCapturedDisplay();
     scheduleNextMove();
 }
 
@@ -563,7 +588,7 @@ function endMatch() {
 }
 
 // ============================================
-// رسم الرقعة
+// رسم الرقعة والقطع المأسورة
 // ============================================
 
 function drawBoard() {
@@ -591,6 +616,18 @@ function drawBoard() {
             }
             cb.appendChild(sq);
         }
+    }
+}
+
+function updateCapturedDisplay() {
+    var whiteCapturedEl = document.getElementById('whiteCaptured');
+    var blackCapturedEl = document.getElementById('blackCaptured');
+    
+    if (whiteCapturedEl) {
+        whiteCapturedEl.textContent = state.capturedByWhite.join(' ');
+    }
+    if (blackCapturedEl) {
+        blackCapturedEl.textContent = state.capturedByBlack.join(' ');
     }
 }
 
