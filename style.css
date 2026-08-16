@@ -42,10 +42,6 @@ body {
     font-family: inherit;
 }
 
-.sound-btn:hover {
-    background: rgba(255, 255, 255, 0.25);
-}
-
 .title {
     color: #ffffff;
     font-size: clamp(16px, 2.5vmin, 26px);
@@ -63,7 +59,7 @@ body {
     align-items: center;
     gap: 20px;
     width: 100%;
-    max-width: 700px;
+    max-width: 800px;
 }
 
 .player-info {
@@ -104,17 +100,17 @@ body {
 }
 
 /* ============================================
-   CHESSBOARD - حجم ثابت
+   CHESSBOARD - حجم أكبر
    ============================================ */
 
 .board-wrapper {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 600px;
-    height: 600px;
-    max-width: 80vw;
-    max-height: 80vw;
+    width: 800px;
+    height: 800px;
+    max-width: 88vw;
+    max-height: 88vw;
 }
 
 .chessboard {
@@ -148,7 +144,7 @@ body {
 }
 
 .piece {
-    font-size: 60px;
+    font-size: 80px;
     line-height: 1;
     font-weight: bold;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
@@ -175,8 +171,8 @@ body {
     display: flex;
     flex-direction: column;
     gap: 3px;
-    width: 600px;
-    max-width: 80vw;
+    width: 800px;
+    max-width: 88vw;
     padding: 4px 8px;
     background: rgba(0, 0, 0, 0.3);
     border-radius: 6px;
@@ -200,7 +196,7 @@ body {
 .captured-pieces {
     color: #ddd;
     letter-spacing: 2px;
-    font-size: clamp(14px, 2vmin, 22px);
+    font-size: clamp(16px, 2.2vmin, 26px);
     min-height: 22px;
 }
 
@@ -209,8 +205,8 @@ body {
    ============================================ */
 
 .opening-display {
-    width: 600px;
-    max-width: 80vw;
+    width: 800px;
+    max-width: 88vw;
     text-align: center;
     padding: 3px;
 }
@@ -231,32 +227,32 @@ body {
 
 @media (max-width: 768px) {
     .board-wrapper {
-        width: 88vmin;
-        height: 88vmin;
-    }
-    .piece {
-        font-size: 10vmin;
-    }
-    .captured-area {
-        width: 88vmin;
-    }
-    .opening-display {
-        width: 88vmin;
-    }
-}
-
-@media (max-width: 480px) {
-    .board-wrapper {
-        width: 92vmin;
-        height: 92vmin;
+        width: 90vmin;
+        height: 90vmin;
     }
     .piece {
         font-size: 11vmin;
     }
     .captured-area {
-        width: 92vmin;
+        width: 90vmin;
     }
     .opening-display {
-        width: 92vmin;
+        width: 90vmin;
+    }
+}
+
+@media (max-width: 480px) {
+    .board-wrapper {
+        width: 95vmin;
+        height: 95vmin;
+    }
+    .piece {
+        font-size: 12vmin;
+    }
+    .captured-area {
+        width: 95vmin;
+    }
+    .opening-display {
+        width: 95vmin;
     }
 }
