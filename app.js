@@ -1,6 +1,6 @@
 /* ============================================
-   DrDer Chess Alpha - Professional Personality System v3.7
-   Refined Tactical vs Strategic Personalities
+   DrDer Chess Alpha - Professional Personality System v3.8
+   Visual Move Tracking + Anti-Repeat
    ============================================ */
 
 var personalities = {
@@ -64,6 +64,8 @@ var state = {
     usedOpenings: [],
     soundEnabled: true,
     matchCount: 0,
+    lastMove: null,
+    recentMoves: [],
     audioFiles: {
         move: 'move.mp3',
         capture: 'capture.mp3',
@@ -177,6 +179,7 @@ function initEmptyBoard() {
     state.currentTurn = 'w';
     state.capturedByWhite = [];
     state.capturedByBlack = [];
+    state.recentMoves = [];
     drawBoard();
     updateCapturedDisplay();
     updateOpeningDisplay();
@@ -412,6 +415,11 @@ function handleBestmove(playerName, msg, worker) {
         var move = state.currentGame.move(chosenMove, { sloppy: true });
         if (move) {
             state.gameHistory.push(move);
+            state.lastMove = move;
+            
+            // تتبع آخر 20 حركة لمنع التكرار
+            state.recentMoves.push(move.san);
+            if (state.recentMoves.length > 20) state.recentMoves.shift();
             
             if (move.flags && move.flags.indexOf('p') !== -1) {
                 playPromotionSound();
@@ -432,6 +440,7 @@ function handleBestmove(playerName, msg, worker) {
             }
             state.currentTurn = state.currentGame.turn();
             drawBoard();
+            highlightMove(move);
             updateCapturedDisplay();
             if (state.currentGame.game_over()) {
                 playCheckmateSound();
@@ -443,7 +452,32 @@ function handleBestmove(playerName, msg, worker) {
 }
 
 // ============================================
-// selectBestMove - نظام شخصية محسّن
+// إبراز الحركة بصرياً
+// ============================================
+
+function highlightMove(move) {
+    var from = move.from;
+    var to = move.to;
+    
+    // إزالة التظليل القديم
+    var oldHighlights = document.querySelectorAll('.move-highlight');
+    for (var i = 0; i < oldHighlights.length; i++) {
+        oldHighlights[i].classList.remove('move-highlight');
+    }
+    
+    // تظليل مربع البداية والنهاية
+    var squares = document.querySelectorAll('.square');
+    for (var j = 0; j < squares.length; j++) {
+        var sq = squares[j];
+        var sqId = sq.getAttribute('data-square');
+        if (sqId === from || sqId === to) {
+            sq.classList.add('move-highlight');
+        }
+    }
+}
+
+// ============================================
+// selectBestMove
 // ============================================
 
 function selectBestMove(playerName, bestMove, candidates, game) {
@@ -453,6 +487,12 @@ function selectBestMove(playerName, bestMove, candidates, game) {
         if (!c || !c.move) continue;
         var mo = simulateMove(c.move, game);
         if (!mo) continue;
+        
+        // منع تكرار نفس الحركة إذا كانت في recentMoves
+        if (state.recentMoves.indexOf(mo.san) !== -1) {
+            continue;
+        }
+        
         valid.push({
             move: c.move, score: c.score, isMate: c.isMate, mateIn: c.mateIn,
             depth: c.depth, san: mo.san, captured: mo.captured, piece: mo.piece,
@@ -466,7 +506,6 @@ function selectBestMove(playerName, bestMove, candidates, game) {
     valid.sort(function(a, b) { return b.score - a.score; });
     var bestScore = valid[0].score;
 
-    // فلترة صارمة: لا نسمح باختيار نقلة أضعف من MAX_EVAL_LOSS
     var filtered = [];
     for (var j = 0; j < valid.length; j++) {
         var v = valid[j];
@@ -476,7 +515,6 @@ function selectBestMove(playerName, bestMove, candidates, game) {
     if (filtered.length === 0) return valid[0].move;
     if (filtered.length === 1) return filtered[0].move;
 
-    // حساب الدرجة النهائية مع شخصية محسّنة
     var scored = [];
     for (var k = 0; k < filtered.length; k++) {
         var cand = filtered[k];
@@ -498,31 +536,18 @@ function calcEngineQuality(cand, bestScore) {
     if (cand.isMate && cand.mateIn < 0) return -2000;
     var loss = bestScore - cand.score;
     if (loss <= 0) return 1000;
-    var quality = 1000 - (loss * 8); // أكثر صرامة: loss 40 = 680
+    var quality = 1000 - (loss * 8);
     return Math.max(0, quality);
 }
-
-// ============================================
-// Alpha Enhanced - تكتيكي محسّن
-// ============================================
 
 function evalAlphaEnhanced(cand, game) {
     var bonus = 0;
     var p = personalities.alpha;
-
-    // Check
     if (cand.isCheck) bonus += 15;
-
-    // Capture
     if (cand.captured) bonus += 10;
-
-    // Sacrifice
     if (cand.captured && cand.piece === 'p' && (cand.captured === 'n' || cand.captured === 'b')) bonus += 8;
-
-    // Piece Activity
     if (cand.piece === 'q' || cand.piece === 'r') bonus += 5;
 
-    // تحليل الوضع بعد النقلة
     try {
         var move = game.move(cand.move, { sloppy: true });
         if (move) {
@@ -530,56 +555,25 @@ function evalAlphaEnhanced(cand, game) {
             var turn = game.turn();
             var oppColor = turn;
             var myColor = turn === 'w' ? 'b' : 'w';
-            
-            // Attack King
             var oppKing = findKing(board, oppColor);
             if (oppKing && countAttackers(game, oppKing, myColor) >= 2) bonus += 10;
-            
-            // Pawn Storm (بيادق متقدمة)
-            var advancedPawns = countAdvancedPawns(board, myColor);
-            bonus += advancedPawns * 2;
-            
             game.undo();
         }
     } catch(e) {}
 
-    // خصم النقلات السلبية
-    if (!cand.captured && !cand.isCheck && cand.piece === 'p' && parseInt(cand.to.charAt(1)) <= 3) {
-        bonus -= 5; // نقلات بيدق سلبية
-    }
-
-    // خصم التكرار
-    if (state.gameHistory.length > 6) {
-        var lastMoves = state.gameHistory.slice(-6);
-        for (var i = 0; i < lastMoves.length; i++) {
-            if (lastMoves[i].san === cand.san) bonus -= 3;
-        }
-    }
-
-    // كش مات
+    if (!cand.captured && !cand.isCheck && cand.piece === 'p' && parseInt(cand.to.charAt(1)) <= 3) bonus -= 5;
     if (cand.isMate && cand.mateIn > 0) bonus += 500;
 
     return bonus;
 }
 
-// ============================================
-// Beta Enhanced - استراتيجي محسّن
-// ============================================
-
 function evalBetaEnhanced(cand, game) {
     var bonus = 0;
     var p = personalities.beta;
-
-    // Castling (سلامة الملك)
     if (cand.isCastle) bonus += 15;
-
-    // تطوير القطع
     if ((cand.piece === 'n' || cand.piece === 'b') && !cand.captured) bonus += 8;
-
-    // بنية البيادق
     if (cand.piece === 'p' && !cand.captured) bonus += 3;
 
-    // تحليل الوضع بعد النقلة
     try {
         var move = game.move(cand.move, { sloppy: true });
         if (move) {
@@ -587,83 +581,17 @@ function evalBetaEnhanced(cand, game) {
             var turn = game.turn();
             var myColor = turn;
             var oppColor = turn === 'w' ? 'b' : 'w';
-            
-            // سلامة ملكنا
             var myKing = findKing(board, myColor);
             if (myKing && countAttackers(game, myKing, oppColor) === 0) bonus += 8;
-            
-            // البيادق المعزولة/المضاعفة
-            var pawnWeaknesses = countPawnWeaknesses(board, myColor);
-            bonus -= pawnWeaknesses * 2;
-            
             game.undo();
         }
     } catch(e) {}
 
-    // خصم التضحيات غير الضرورية
-    if (cand.captured && cand.piece !== 'p' && cand.captured === 'p') {
-        bonus -= 10;
-    }
-
-    // خصم الكش غير المدعوم
-    if (cand.isCheck && !cand.captured) {
-        bonus -= 4;
-    }
-
-    // كش مات
+    if (cand.captured && cand.piece !== 'p' && cand.captured === 'p') bonus -= 10;
+    if (cand.isCheck && !cand.captured) bonus -= 4;
     if (cand.isMate && cand.mateIn > 0) bonus += 500;
 
     return bonus;
-}
-
-// ============================================
-// دوال مساعدة للتحليل المتقدم
-// ============================================
-
-function countAdvancedPawns(board, color) {
-    var count = 0;
-    for (var r = 0; r < 8; r++) {
-        for (var c = 0; c < 8; c++) {
-            var piece = board[r][c];
-            if (piece && piece.type === 'p' && piece.color === color) {
-                if (color === 'w' && r <= 3) count++;
-                if (color === 'b' && r >= 4) count++;
-            }
-        }
-    }
-    return count;
-}
-
-function countPawnWeaknesses(board, color) {
-    var count = 0;
-    var files = [0, 0, 0, 0, 0, 0, 0, 0];
-    
-    // عد البيادق في كل عمود
-    for (var r = 0; r < 8; r++) {
-        for (var c = 0; c < 8; c++) {
-            var piece = board[r][c];
-            if (piece && piece.type === 'p' && piece.color === color) {
-                files[c]++;
-            }
-        }
-    }
-    
-    // البيادق المضاعفة
-    for (var i = 0; i < 8; i++) {
-        if (files[i] > 1) count += (files[i] - 1);
-    }
-    
-    // البيادق المعزولة
-    for (var j = 0; j < 8; j++) {
-        if (files[j] > 0) {
-            var isolated = true;
-            if (j > 0 && files[j - 1] > 0) isolated = false;
-            if (j < 7 && files[j + 1] > 0) isolated = false;
-            if (isolated) count++;
-        }
-    }
-    
-    return count;
 }
 
 function findKing(board, color) {
@@ -718,6 +646,9 @@ function makeNextMove() {
             var move = state.currentGame.move(openingMove, { sloppy: true });
             if (move) {
                 state.gameHistory.push(move);
+                state.lastMove = move;
+                state.recentMoves.push(move.san);
+                if (state.recentMoves.length > 20) state.recentMoves.shift();
                 
                 if (move.flags && move.flags.indexOf('p') !== -1) {
                     playPromotionSound();
@@ -736,6 +667,7 @@ function makeNextMove() {
                 }
                 state.currentTurn = state.currentGame.turn();
                 drawBoard();
+                highlightMove(move);
                 updateCapturedDisplay();
             }
         } catch(e) {}
@@ -791,6 +723,8 @@ function prepareMatch() {
     state.waitingForGameReady = true;
     state.capturedByWhite = [];
     state.capturedByBlack = [];
+    state.recentMoves = [];
+    state.lastMove = null;
     state.matchCount++;
 
     ['alpha', 'beta'].forEach(function(name) {
@@ -861,7 +795,7 @@ function endMatch() {
 }
 
 // ============================================
-// رسم الرقعة والقطع المأسورة
+// رسم الرقعة
 // ============================================
 
 function drawBoard() {
@@ -876,10 +810,13 @@ function drawBoard() {
     };
 
     cb.innerHTML = '';
+    var files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
     for (var r = 0; r < 8; r++) {
         for (var c = 0; c < 8; c++) {
             var sq = document.createElement('div');
+            var squareId = files[c] + (8 - r);
             sq.className = 'square ' + ((r + c) % 2 === 0 ? 'light' : 'dark');
+            sq.setAttribute('data-square', squareId);
             var p = board[r][c];
             if (p) {
                 var pc = document.createElement('div');
