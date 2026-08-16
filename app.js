@@ -47,7 +47,7 @@ var state = {
     colorSwap: false,
     openingMoves: [],
     openingIndex: 0,
-    gameReadyCount: 0
+    waitingForGameReady: false
 };
 
 var OPENINGS = [
@@ -104,8 +104,11 @@ function startSystem() {
     var checkReady = function() {
         var a = state.workers.alpha && state.workers.alpha.ready;
         var b = state.workers.beta && state.workers.beta.ready;
-        if (a && b) { prepareMatch(); }
-        else { setTimeout(checkReady, 500); }
+        if (a && b && !state.waitingForGameReady) {
+            prepareMatch();
+        } else {
+            setTimeout(checkReady, 500);
+        }
     };
     setTimeout(checkReady, 2000);
 }
@@ -147,6 +150,8 @@ function createWorker(name, path) {
         if (msg.indexOf('readyok') !== -1) {
             if (!worker.ready) {
                 worker.ready = true;
+                // لا نستدعي onWorkerReady هنا - فقط التهيئة الأولى
+                return;
             }
             worker.gameReady = true;
             onWorkerReady(name);
@@ -184,16 +189,14 @@ function initializeEngine(worker) {
 }
 
 function onWorkerReady(name) {
-    if (state.isMatchRunning && !state.searchActive) {
-        var playerName = state.currentTurn === state.alphaColor ? 'alpha' : 'beta';
-        if (name === playerName) {
-            scheduleNextMove();
-        }
-    }
-    if (state.workers.alpha && state.workers.alpha.gameReady && state.workers.beta && state.workers.beta.gameReady) {
-        if (!state.isMatchRunning) {
-            startMatch();
-        }
+    if (!state.waitingForGameReady) return;
+    
+    var a = state.workers.alpha && state.workers.alpha.gameReady;
+    var b = state.workers.beta && state.workers.beta.gameReady;
+    
+    if (a && b) {
+        state.waitingForGameReady = false;
+        startMatch();
     }
 }
 
@@ -458,7 +461,7 @@ function makeNextMove() {
     if (state.searchActive) return;
     if (!state.currentGame || state.currentGame.game_over()) { endMatch(); return; }
 
-    // إذا كانت هناك حركات افتتاحية متبقية، العبها أولاً
+    // الافتتاحية - نقلة نقلة
     if (state.openingIndex < state.openingMoves.length) {
         var openingMove = state.openingMoves[state.openingIndex];
         state.openingIndex++;
@@ -510,7 +513,7 @@ function makeNextMove() {
 // ============================================
 
 function prepareMatch() {
-    state.isMatchRunning = true;
+    state.isMatchRunning = false;
     state.currentGame = new Chess();
     state.gameHistory = [];
     state.currentTurn = 'w';
@@ -519,12 +522,11 @@ function prepareMatch() {
     state.colorSwap = !state.colorSwap;
     state.alphaColor = state.colorSwap ? 'b' : 'w';
     state.betaColor = state.colorSwap ? 'w' : 'b';
+    state.waitingForGameReady = true;
 
     document.getElementById('whitePlayer').textContent = state.alphaColor === 'w' ? 'Alpha' : 'Beta';
     document.getElementById('blackPlayer').textContent = state.alphaColor === 'w' ? 'Beta' : 'Alpha';
 
-    // إرسال ucinewgame وانتظار readyok
-    state.gameReadyCount = 0;
     ['alpha', 'beta'].forEach(function(name) {
         var w = state.workers[name];
         if (w && w.ready) {
@@ -542,24 +544,6 @@ function startMatch() {
     state.openingMoves = OPENINGS[Math.floor(Math.random() * OPENINGS.length)];
     drawBoard();
     scheduleNextMove();
-}
-
-function onWorkerReady(name) {
-    if (state.workers.alpha && state.workers.alpha.gameReady && state.workers.beta && state.workers.beta.gameReady) {
-        if (!state.isMatchRunning) {
-            startMatch();
-        }
-    }
-    if (state.isMatchRunning && !state.searchActive) {
-        var playerName = state.currentTurn === state.alphaColor ? 'alpha' : 'beta';
-        if (name === playerName) {
-            scheduleNextMove();
-        }
-    }
-}
-
-function applyOpening() {
-    // لم تعد تستخدم - الافتتاحية تتحرك نقلة نقلة في makeNextMove
 }
 
 function endMatch() {
