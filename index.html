@@ -19,15 +19,21 @@
     <h1 class="title">DrDer-CheSS</h1>
     
     <div class="players-info">
-        <div class="player white-player">
+        <div class="player-row">
             <span class="player-dot white-dot"></span>
-            <span id="whitePlayer">Alpha</span>
-            <div class="captured-pieces" id="whiteCaptured"></div>
+            <span id="whitePlayer" class="player-name">Alpha</span>
         </div>
-        <div class="player black-player">
+        <div class="captured-row">
+            <span class="captured-label">أسرى الأبيض:</span>
+            <span id="whiteCaptured" class="captured-pieces"></span>
+        </div>
+        <div class="player-row">
             <span class="player-dot black-dot"></span>
-            <span id="blackPlayer">Beta</span>
-            <div class="captured-pieces" id="blackCaptured"></div>
+            <span id="blackPlayer" class="player-name">Beta</span>
+        </div>
+        <div class="captured-row">
+            <span class="captured-label">أسرى الأسود:</span>
+            <span id="blackCaptured" class="captured-pieces"></span>
         </div>
     </div>
     
