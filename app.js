@@ -52,6 +52,15 @@ var state = {
     capturedByBlack: []
 };
 
+var PIECE_UNICODE = {
+    p: '♟',
+    n: '♞',
+    b: '♝',
+    r: '♜',
+    q: '♛',
+    k: '♚'
+};
+
 var OPENINGS = [
     ['e2e4', 'e7e5', 'g1f3', 'b8c6', 'f1b5', 'a7a6', 'b5a4', 'g8f6'],
     ['e2e4', 'c7c5', 'g1f3', 'd7d6', 'd2d4', 'c5d4', 'f3d4', 'g8f6'],
@@ -473,7 +482,6 @@ function makeNextMove() {
     if (state.searchActive) return;
     if (!state.currentGame || state.currentGame.game_over()) { endMatch(); return; }
 
-    // الافتتاحية - نقلة نقلة مع تفكير
     if (state.openingIndex < state.openingMoves.length) {
         var openingMove = state.openingMoves[state.openingIndex];
         state.openingIndex++;
@@ -493,8 +501,6 @@ function makeNextMove() {
                 updateCapturedDisplay();
             }
         } catch(e) {}
-        // تأخير أطول للافتتاحية - 1.5 ثانية بين كل حركة
-        if (state.nextMoveTimer) clearTimeout(state.nextMoveTimer);
         state.nextMoveTimer = setTimeout(function() { state.nextMoveTimer = null; makeNextMove(); }, 1500);
         return;
     }
@@ -620,14 +626,22 @@ function drawBoard() {
 }
 
 function updateCapturedDisplay() {
-    var whiteCapturedEl = document.getElementById('whiteCaptured');
-    var blackCapturedEl = document.getElementById('blackCaptured');
+    var whiteEl = document.getElementById('whiteCaptured');
+    var blackEl = document.getElementById('blackCaptured');
     
-    if (whiteCapturedEl) {
-        whiteCapturedEl.textContent = state.capturedByWhite.join(' ');
+    if (whiteEl) {
+        var whitePieces = [];
+        for (var i = 0; i < state.capturedByWhite.length; i++) {
+            whitePieces.push(PIECE_UNICODE[state.capturedByWhite[i]] || state.capturedByWhite[i]);
+        }
+        whiteEl.textContent = whitePieces.join(' ');
     }
-    if (blackCapturedEl) {
-        blackCapturedEl.textContent = state.capturedByBlack.join(' ');
+    if (blackEl) {
+        var blackPieces = [];
+        for (var j = 0; j < state.capturedByBlack.length; j++) {
+            blackPieces.push(PIECE_UNICODE[state.capturedByBlack[j]] || state.capturedByBlack[j]);
+        }
+        blackEl.textContent = blackPieces.join(' ');
     }
 }
 
