@@ -209,14 +209,14 @@ body {
     width: 850px;
     max-width: 92vw;
     text-align: center;
-    padding: 2px;
+    padding: 3px;
 }
 
 .vs-text {
     color: #ffd700;
-    font-size: clamp(20px, 3.5vmin, 36px);
+    font-size: clamp(18px, 3vmin, 30px);
     font-weight: 800;
-    letter-spacing: 5px;
+    letter-spacing: 4px;
     text-shadow: 0 0 20px rgba(255, 215, 0, 0.6), 0 0 40px rgba(255, 215, 0, 0.3);
     user-select: none;
     -webkit-user-select: none;
