@@ -202,22 +202,20 @@ body {
 }
 
 /* ============================================
-   ALPHA VS BETA - إضافة جديدة
+   ALPHA VS BETA - جديد
    ============================================ */
 
 .vs-display {
-    width: 850px;
-    max-width: 92vw;
     text-align: center;
-    padding: 3px;
+    padding: 4px 0;
 }
 
 .vs-text {
-    color: #ffd700;
-    font-size: clamp(18px, 3vmin, 30px);
+    color: #ffffff;
+    font-size: clamp(18px, 2.5vmin, 28px);
     font-weight: 800;
-    letter-spacing: 4px;
-    text-shadow: 0 0 20px rgba(255, 215, 0, 0.6), 0 0 40px rgba(255, 215, 0, 0.3);
+    letter-spacing: 3px;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.5), 0 0 40px rgba(255, 255, 255, 0.2);
     user-select: none;
     -webkit-user-select: none;
 }
@@ -236,9 +234,6 @@ body {
     .opening-display {
         width: 93vmin;
     }
-    .vs-display {
-        width: 93vmin;
-    }
 }
 
 @media (max-width: 480px) {
@@ -253,9 +248,6 @@ body {
         width: 96vmin;
     }
     .opening-display {
-        width: 96vmin;
-    }
-    .vs-display {
         width: 96vmin;
     }
 }
