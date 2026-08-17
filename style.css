@@ -1,3 +1,7 @@
+/* ============================================
+   DrDer Chess - Clean Display Style
+   ============================================ */
+
 * {
     margin: 0;
     padding: 0;
@@ -19,6 +23,10 @@ body {
     justify-content: center;
     background: #0a0a0a;
 }
+
+/* ============================================
+   START SCREEN
+   ============================================ */
 
 .start-screen {
     display: flex;
@@ -100,6 +108,10 @@ body {
     font-size: 12px;
 }
 
+/* ============================================
+   GAME SCREEN
+   ============================================ */
+
 .game-screen {
     display: flex;
     flex-direction: column;
@@ -124,7 +136,7 @@ body {
     align-items: center;
     gap: 25px;
     width: 100%;
-    max-width: 850px;
+    max-width: 480px;
 }
 
 .player-info {
@@ -168,8 +180,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 600px;
-    height: 600px;
+    width: 480px;
+    height: 480px;
     flex-shrink: 0;
     flex-grow: 0;
 }
