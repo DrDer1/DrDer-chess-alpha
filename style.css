@@ -119,13 +119,13 @@ body {
     justify-content: center;
     width: 100%;
     height: 100%;
-    gap: 5px;
-    padding: 5px;
+    gap: 4px;
+    padding: 4px;
 }
 
 .title {
     color: #ffffff;
-    font-size: 22px;
+    font-size: 18px;
     font-weight: bold;
     text-align: center;
 }
@@ -134,23 +134,23 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 25px;
+    gap: 15px;
     width: 100%;
-    max-width: 480px;
+    max-width: 100%;
 }
 
 .player-info {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 14px;
+    gap: 4px;
+    font-size: 12px;
     color: #ccc;
     font-weight: 600;
 }
 
 .dot {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
 }
 
@@ -165,7 +165,7 @@ body {
 
 .color-label {
     color: #888;
-    font-size: 12px;
+    font-size: 10px;
 }
 
 .player-name {
@@ -173,26 +173,26 @@ body {
 }
 
 /* ============================================
-   CHESSBOARD - حجم ثابت تماماً
+   CHESSBOARD - حجم مناسب للهاتف
    ============================================ */
 
 .board-wrapper {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 480px;
-    height: 480px;
+    width: 100%;
+    max-width: 360px;
     flex-shrink: 0;
     flex-grow: 0;
 }
 
 .chessboard {
     display: grid;
-    grid-template-columns: repeat(8, 60px);
-    grid-template-rows: repeat(8, 60px);
-    width: 480px;
-    height: 480px;
-    border: 3px solid #333;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border: 2px solid #333;
     overflow: hidden;
     flex-shrink: 0;
     flex-grow: 0;
@@ -202,11 +202,10 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 60px;
-    height: 60px;
     position: relative;
-    flex-shrink: 0;
-    flex-grow: 0;
+    min-width: 0;
+    min-height: 0;
+    aspect-ratio: 1 / 1;
 }
 
 .square.light {
@@ -222,7 +221,7 @@ body {
 }
 
 .piece {
-    font-size: 50px;
+    font-size: clamp(28px, 10vw, 42px);
     font-weight: bold;
     line-height: 1;
     flex-shrink: 0;
@@ -238,15 +237,16 @@ body {
 }
 
 /* ============================================
-   CAPTURED PIECES - حجم ثابت
+   CAPTURED PIECES
    ============================================ */
 
 .captured-area {
     display: flex;
     flex-direction: column;
     gap: 2px;
-    width: 480px;
-    padding: 3px 8px;
+    width: 100%;
+    max-width: 360px;
+    padding: 2px 6px;
     background: rgba(0, 0, 0, 0.3);
     border-radius: 6px;
     flex-shrink: 0;
@@ -255,51 +255,52 @@ body {
 .captured-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    min-height: 20px;
+    gap: 6px;
+    min-height: 18px;
 }
 
 .captured-player-name {
     color: #ccc;
     font-weight: 600;
-    min-width: 35px;
-    font-size: 12px;
+    min-width: 30px;
+    font-size: 10px;
 }
 
 .captured-pieces {
     color: #ddd;
-    letter-spacing: 2px;
-    font-size: 18px;
+    letter-spacing: 1px;
+    font-size: 14px;
 }
 
 /* ============================================
-   OPENING + VS - حجم ثابت
+   OPENING + VS
    ============================================ */
 
 .opening-display {
-    width: 480px;
+    width: 100%;
+    max-width: 360px;
     text-align: center;
-    padding: 2px;
+    padding: 1px;
     flex-shrink: 0;
 }
 
 .opening-name {
     color: #ffd700;
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 600;
 }
 
 .vs-display {
     text-align: center;
-    padding: 3px 0;
+    padding: 2px 0;
     flex-shrink: 0;
 }
 
 .vs-text {
     color: #ffffff;
-    font-size: 22px;
+    font-size: 18px;
     font-weight: bold;
-    letter-spacing: 3px;
+    letter-spacing: 2px;
 }
 
 /* ============================================
@@ -323,11 +324,48 @@ body {
 
 .transition-text {
     color: #ccc;
-    font-size: 18px;
+    font-size: 16px;
 }
 
 .countdown-number {
     color: #ffd700;
-    font-size: 60px;
+    font-size: 50px;
     font-weight: bold;
+}
+
+/* ============================================
+   للشاشات الأكبر - رقعة أكبر قليلاً
+   ============================================ */
+
+@media (min-width: 768px) {
+    .board-wrapper {
+        max-width: 480px;
+    }
+    .captured-area {
+        max-width: 480px;
+    }
+    .opening-display {
+        max-width: 480px;
+    }
+    .piece {
+        font-size: 50px;
+    }
+    .title {
+        font-size: 22px;
+    }
+    .player-info {
+        font-size: 14px;
+    }
+    .captured-player-name {
+        font-size: 12px;
+    }
+    .captured-pieces {
+        font-size: 18px;
+    }
+    .opening-name {
+        font-size: 13px;
+    }
+    .vs-text {
+        font-size: 22px;
+    }
 }
