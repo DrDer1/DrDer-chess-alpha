@@ -1,7 +1,3 @@
-/* ============================================
-   DrDer Chess - Clean Display Style
-   ============================================ */
-
 * {
     margin: 0;
     padding: 0;
@@ -13,7 +9,7 @@ html, body {
     height: 100%;
     overflow: hidden;
     background-color: #0a0a0a;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: Arial, sans-serif;
     direction: rtl;
 }
 
@@ -21,12 +17,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+    background: #0a0a0a;
 }
-
-/* ============================================
-   START SCREEN
-   ============================================ */
 
 .start-screen {
     display: flex;
@@ -41,35 +33,27 @@ body {
 
 .start-title {
     color: #ffd700;
-    font-size: clamp(32px, 7vmin, 70px);
-    font-weight: 700;
+    font-size: 50px;
+    font-weight: bold;
     letter-spacing: 5px;
-    text-shadow: 0 0 30px rgba(255, 215, 0, 0.6), 0 0 60px rgba(255, 215, 0, 0.3);
-    user-select: none;
-    -webkit-user-select: none;
     text-align: center;
 }
 
 .start-btn {
-    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+    background: #1a1a1a;
     color: #ffd700;
     border: 3px solid #ffd700;
     border-radius: 20px;
     padding: 18px 60px;
-    font-size: clamp(24px, 4vmin, 40px);
-    font-weight: 700;
+    font-size: 30px;
+    font-weight: bold;
     cursor: pointer;
-    letter-spacing: 5px;
-    transition: all 0.3s ease;
-    box-shadow: 0 0 40px rgba(255, 215, 0, 0.3);
     text-align: center;
 }
 
 .start-btn:hover {
     background: #ffd700;
     color: #0a0a0a;
-    box-shadow: 0 0 60px rgba(255, 215, 0, 0.6);
-    transform: scale(1.05);
 }
 
 .loading-message {
@@ -78,7 +62,7 @@ body {
 
 .loading-text {
     color: #ccc;
-    font-size: clamp(14px, 2vmin, 22px);
+    font-size: 18px;
     margin-bottom: 15px;
 }
 
@@ -105,22 +89,16 @@ body {
 }
 
 @keyframes pulse {
-    0%, 100% { opacity: 0.2; transform: scale(0.8); }
-    50% { opacity: 1; transform: scale(1.2); }
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 1; }
 }
 
 .copyright {
     position: absolute;
     bottom: 20px;
     color: #666;
-    font-size: clamp(10px, 1.5vmin, 14px);
-    letter-spacing: 1px;
-    text-align: center;
+    font-size: 12px;
 }
-
-/* ============================================
-   GAME SCREEN
-   ============================================ */
 
 .game-screen {
     display: flex;
@@ -135,13 +113,9 @@ body {
 
 .title {
     color: #ffffff;
-    font-size: clamp(16px, 2.5vmin, 26px);
-    font-weight: 700;
-    letter-spacing: 2px;
+    font-size: 22px;
+    font-weight: bold;
     text-align: center;
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
-    user-select: none;
-    -webkit-user-select: none;
 }
 
 .players-bar {
@@ -157,23 +131,19 @@ body {
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: clamp(12px, 1.6vmin, 16px);
+    font-size: 14px;
     color: #ccc;
     font-weight: 600;
-    user-select: none;
-    -webkit-user-select: none;
 }
 
 .dot {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    display: inline-block;
 }
 
 .white-dot {
     background-color: #ffffff;
-    box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
 }
 
 .black-dot {
@@ -183,16 +153,12 @@ body {
 
 .color-label {
     color: #888;
-    font-size: clamp(10px, 1.2vmin, 13px);
+    font-size: 12px;
 }
 
 .player-name {
     color: #fff;
 }
-
-/* ============================================
-   CHESSBOARD
-   ============================================ */
 
 .board-wrapper {
     display: flex;
@@ -200,8 +166,6 @@ body {
     justify-content: center;
     width: 80vmin;
     height: 80vmin;
-    max-width: 90vw;
-    max-height: 80vh;
 }
 
 .chessboard {
@@ -211,8 +175,6 @@ body {
     width: 100%;
     height: 100%;
     border: 3px solid #333;
-    border-radius: 6px;
-    box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
     overflow: hidden;
 }
 
@@ -220,57 +182,39 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    user-select: none;
-    -webkit-user-select: none;
-    min-width: 0;
-    min-height: 0;
     position: relative;
-    transition: background 0.3s ease;
 }
 
 .square.light {
-    background: linear-gradient(135deg, #d4a574 0%, #c19a6b 100%);
+    background: #d4a574;
 }
 
 .square.dark {
-    background: linear-gradient(135deg, #6b4423 0%, #5a3a1a 100%);
+    background: #6b4423;
 }
 
 .square.move-highlight {
-    box-shadow: inset 0 0 20px rgba(255, 255, 0, 0.7);
-    background: linear-gradient(135deg, #f5d76e 0%, #f1c40f 100%);
+    background: #f1c40f;
 }
 
 .piece {
     font-size: 9vmin;
-    line-height: 1;
     font-weight: bold;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-    user-select: none;
-    -webkit-user-select: none;
-    flex-shrink: 0;
 }
 
 .piece.white {
     color: #ffffff;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
 }
 
 .piece.black {
     color: #000000;
-    text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.3);
 }
-
-/* ============================================
-   CAPTURED PIECES
-   ============================================ */
 
 .captured-area {
     display: flex;
     flex-direction: column;
     gap: 2px;
     width: 80vmin;
-    max-width: 90vw;
     padding: 3px 8px;
     background: rgba(0, 0, 0, 0.3);
     border-radius: 6px;
@@ -280,7 +224,6 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: clamp(11px, 1.6vmin, 14px);
     min-height: 20px;
 }
 
@@ -288,40 +231,26 @@ body {
     color: #ccc;
     font-weight: 600;
     min-width: 35px;
-    font-size: clamp(9px, 1.2vmin, 12px);
+    font-size: 12px;
 }
 
 .captured-pieces {
     color: #ddd;
     letter-spacing: 2px;
-    font-size: clamp(14px, 2vmin, 24px);
-    min-height: 20px;
+    font-size: 20px;
 }
-
-/* ============================================
-   OPENING NAME
-   ============================================ */
 
 .opening-display {
     width: 80vmin;
-    max-width: 90vw;
     text-align: center;
     padding: 2px;
 }
 
 .opening-name {
     color: #ffd700;
-    font-size: clamp(11px, 1.4vmin, 16px);
+    font-size: 14px;
     font-weight: 600;
-    letter-spacing: 1px;
-    text-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
-    user-select: none;
-    -webkit-user-select: none;
 }
-
-/* ============================================
-   ALPHA VS BETA
-   ============================================ */
 
 .vs-display {
     text-align: center;
@@ -330,17 +259,10 @@ body {
 
 .vs-text {
     color: #ffffff;
-    font-size: clamp(18px, 2.5vmin, 28px);
-    font-weight: 800;
+    font-size: 24px;
+    font-weight: bold;
     letter-spacing: 3px;
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.5), 0 0 40px rgba(255, 255, 255, 0.2);
-    user-select: none;
-    -webkit-user-select: none;
 }
-
-/* ============================================
-   MATCH TRANSITION
-   ============================================ */
 
 .match-transition {
     position: fixed;
@@ -359,13 +281,11 @@ body {
 
 .transition-text {
     color: #ccc;
-    font-size: clamp(14px, 2vmin, 22px);
-    letter-spacing: 2px;
+    font-size: 18px;
 }
 
 .countdown-number {
     color: #ffd700;
-    font-size: clamp(40px, 8vmin, 80px);
-    font-weight: 700;
-    text-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+    font-size: 60px;
+    font-weight: bold;
 }
