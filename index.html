@@ -19,8 +19,10 @@
     <!-- شاشة البداية -->
     <div id="startScreen" class="start-screen">
         <h1 class="start-title">DrDer-CheSS</h1>
+        
         <button id="startBtn" class="start-btn">ابدأ</button>
-        <div id="loadingMessage" class="loading-message" style="display:none;">
+        
+        <div id="loadingMessage" class="loading-message" style="display: none;">
             <p class="loading-text">يتم تشغيل محركات الذكاء الاصطناعي...</p>
             <div class="loading-dots">
                 <span class="dot-anim"></span>
@@ -28,12 +30,16 @@
                 <span class="dot-anim"></span>
             </div>
         </div>
-        <div class="copyright">جميع الحقوق محفوظة © DrDer</div>
+        
+        <div class="copyright">
+            جميع الحقوق محفوظة © DrDer
+        </div>
     </div>
     
     <!-- شاشة اللعب -->
-    <div id="gameScreen" class="game-screen" style="display:none;">
+    <div id="gameScreen" class="game-screen" style="display: none;">
         <h1 class="title">DrDer-CheSS</h1>
+        
         <div class="players-bar">
             <div class="player-info">
                 <span class="dot white-dot"></span>
@@ -46,9 +52,11 @@
                 <span id="blackPlayer" class="player-name">Beta</span>
             </div>
         </div>
+        
         <div class="board-wrapper">
             <div id="chessboard" class="chessboard"></div>
         </div>
+        
         <div class="captured-area">
             <div class="captured-row">
                 <span class="captured-player-name">Alpha</span>
@@ -59,22 +67,25 @@
                 <span id="blackCaptured" class="captured-pieces"></span>
             </div>
         </div>
+        
         <div class="opening-display">
             <span id="openingName" class="opening-name"></span>
         </div>
+        
         <div class="vs-display">
             <span class="vs-text">Alpha VS Beta</span>
         </div>
     </div>
 
-    <!-- شاشة الانتقال -->
-    <div id="matchTransition" class="match-transition" style="display:none;">
+    <!-- شاشة الانتقال بين المباريات -->
+    <div id="matchTransition" class="match-transition" style="display: none;">
         <p class="transition-text">المباراة القادمة تبدأ خلال</p>
         <p id="countdownNumber" class="countdown-number">5</p>
     </div>
 
     <script src="chess.min.js"></script>
     <script src="app.js"></script>
+    
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').catch(function(err) {
