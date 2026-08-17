@@ -21,110 +21,8 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
-}
-
-/* ============================================
-   START SCREEN
-   ============================================ */
-
-.start-screen {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    gap: 40px;
-    position: relative;
-}
-
-.start-title {
-    color: #ffd700;
-    font-size: clamp(30px, 6vmin, 60px);
-    font-weight: 700;
-    letter-spacing: 4px;
-    text-shadow: 0 0 30px rgba(255, 215, 0, 0.5), 0 0 60px rgba(255, 215, 0, 0.3);
-    user-select: none;
-    -webkit-user-select: none;
-}
-
-.start-btn {
-    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-    color: #ffd700;
-    border: 2px solid #ffd700;
-    border-radius: 15px;
-    padding: 15px 50px;
-    font-size: clamp(20px, 3vmin, 32px);
-    font-weight: 700;
-    cursor: pointer;
-    letter-spacing: 3px;
-    transition: all 0.3s ease;
-    box-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
-}
-
-.start-btn:hover {
-    background: #ffd700;
-    color: #0a0a0a;
-    box-shadow: 0 0 50px rgba(255, 215, 0, 0.5);
-    transform: scale(1.05);
-}
-
-.loading-message {
-    text-align: center;
-}
-
-.loading-text {
-    color: #ccc;
-    font-size: clamp(14px, 2vmin, 20px);
-    margin-bottom: 15px;
-}
-
-.loading-dots {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-}
-
-.dot-anim {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background-color: #ffd700;
-    animation: pulse 1s infinite;
-}
-
-.dot-anim:nth-child(2) {
-    animation-delay: 0.2s;
-}
-
-.dot-anim:nth-child(3) {
-    animation-delay: 0.4s;
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 0.2; transform: scale(0.8); }
-    50% { opacity: 1; transform: scale(1.2); }
-}
-
-.copyright {
-    position: absolute;
-    bottom: 20px;
-    color: #666;
-    font-size: clamp(10px, 1.5vmin, 14px);
-    letter-spacing: 1px;
-}
-
-/* ============================================
-   GAME SCREEN
-   ============================================ */
-
-.game-screen {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
     justify-content: flex-start;
-    height: 100%;
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
     padding: 4px;
     gap: 3px;
 }
@@ -185,10 +83,6 @@ body {
 .player-name {
     color: #fff;
 }
-
-/* ============================================
-   CHESSBOARD
-   ============================================ */
 
 .board-wrapper {
     display: flex;
@@ -257,10 +151,6 @@ body {
     text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.3);
 }
 
-/* ============================================
-   CAPTURED PIECES
-   ============================================ */
-
 .captured-area {
     display: flex;
     flex-direction: column;
@@ -294,10 +184,6 @@ body {
     min-height: 20px;
 }
 
-/* ============================================
-   OPENING NAME
-   ============================================ */
-
 .opening-display {
     width: 850px;
     max-width: 92vw;
@@ -314,42 +200,6 @@ body {
     user-select: none;
     -webkit-user-select: none;
 }
-
-/* ============================================
-   MATCH TRANSITION
-   ============================================ */
-
-.match-transition {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.85);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 200;
-    gap: 15px;
-}
-
-.transition-text {
-    color: #ccc;
-    font-size: clamp(14px, 2vmin, 22px);
-    letter-spacing: 2px;
-}
-
-.countdown-number {
-    color: #ffd700;
-    font-size: clamp(40px, 8vmin, 80px);
-    font-weight: 700;
-    text-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
-}
-
-/* ============================================
-   RESPONSIVE
-   ============================================ */
 
 @media (max-width: 768px) {
     .board-wrapper {
