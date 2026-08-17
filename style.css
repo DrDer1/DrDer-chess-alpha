@@ -19,17 +19,123 @@ html, body {
 
 body {
     display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+}
+
+/* ============================================
+   START SCREEN
+   ============================================ */
+
+.start-screen {
+    display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
-    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
-    padding: 4px;
-    gap: 3px;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    gap: 40px;
+    position: relative;
+}
+
+.start-title {
+    color: #ffd700;
+    font-size: clamp(32px, 7vmin, 70px);
+    font-weight: 700;
+    letter-spacing: 5px;
+    text-shadow: 0 0 30px rgba(255, 215, 0, 0.6), 0 0 60px rgba(255, 215, 0, 0.3);
+    user-select: none;
+    -webkit-user-select: none;
+    text-align: center;
+}
+
+.start-btn {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+    color: #ffd700;
+    border: 3px solid #ffd700;
+    border-radius: 20px;
+    padding: 18px 60px;
+    font-size: clamp(24px, 4vmin, 40px);
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 5px;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 40px rgba(255, 215, 0, 0.3);
+    text-align: center;
+}
+
+.start-btn:hover {
+    background: #ffd700;
+    color: #0a0a0a;
+    box-shadow: 0 0 60px rgba(255, 215, 0, 0.6);
+    transform: scale(1.05);
+}
+
+.loading-message {
+    text-align: center;
+}
+
+.loading-text {
+    color: #ccc;
+    font-size: clamp(14px, 2vmin, 22px);
+    margin-bottom: 15px;
+}
+
+.loading-dots {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.dot-anim {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #ffd700;
+    animation: pulse 1s infinite;
+}
+
+.dot-anim:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.dot-anim:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.2; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.2); }
+}
+
+.copyright {
+    position: absolute;
+    bottom: 20px;
+    color: #666;
+    font-size: clamp(10px, 1.5vmin, 14px);
+    letter-spacing: 1px;
+    text-align: center;
+}
+
+/* ============================================
+   GAME SCREEN
+   ============================================ */
+
+.game-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    gap: 5px;
+    padding: 5px;
 }
 
 .title {
     color: #ffffff;
-    font-size: clamp(14px, 2vmin, 22px);
+    font-size: clamp(16px, 2.5vmin, 26px);
     font-weight: 700;
     letter-spacing: 2px;
     text-align: center;
@@ -42,7 +148,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 15px;
+    gap: 25px;
     width: 100%;
     max-width: 850px;
 }
@@ -50,8 +156,8 @@ body {
 .player-info {
     display: flex;
     align-items: center;
-    gap: 5px;
-    font-size: clamp(11px, 1.4vmin, 14px);
+    gap: 6px;
+    font-size: clamp(12px, 1.6vmin, 16px);
     color: #ccc;
     font-weight: 600;
     user-select: none;
@@ -59,8 +165,8 @@ body {
 }
 
 .dot {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
     display: inline-block;
 }
@@ -77,21 +183,25 @@ body {
 
 .color-label {
     color: #888;
-    font-size: clamp(9px, 1vmin, 11px);
+    font-size: clamp(10px, 1.2vmin, 13px);
 }
 
 .player-name {
     color: #fff;
 }
 
+/* ============================================
+   CHESSBOARD
+   ============================================ */
+
 .board-wrapper {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 850px;
-    height: 850px;
-    max-width: 92vw;
-    max-height: 92vw;
+    width: 80vmin;
+    height: 80vmin;
+    max-width: 90vw;
+    max-height: 80vh;
 }
 
 .chessboard {
@@ -132,7 +242,7 @@ body {
 }
 
 .piece {
-    font-size: 85px;
+    font-size: 9vmin;
     line-height: 1;
     font-weight: bold;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
@@ -151,12 +261,16 @@ body {
     text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.3);
 }
 
+/* ============================================
+   CAPTURED PIECES
+   ============================================ */
+
 .captured-area {
     display: flex;
     flex-direction: column;
     gap: 2px;
-    width: 850px;
-    max-width: 92vw;
+    width: 80vmin;
+    max-width: 90vw;
     padding: 3px 8px;
     background: rgba(0, 0, 0, 0.3);
     border-radius: 6px;
@@ -184,9 +298,13 @@ body {
     min-height: 20px;
 }
 
+/* ============================================
+   OPENING NAME
+   ============================================ */
+
 .opening-display {
-    width: 850px;
-    max-width: 92vw;
+    width: 80vmin;
+    max-width: 90vw;
     text-align: center;
     padding: 2px;
 }
@@ -201,9 +319,13 @@ body {
     -webkit-user-select: none;
 }
 
+/* ============================================
+   ALPHA VS BETA
+   ============================================ */
+
 .vs-display {
     text-align: center;
-    padding: 4px 0;
+    padding: 3px 0;
 }
 
 .vs-text {
@@ -216,34 +338,34 @@ body {
     -webkit-user-select: none;
 }
 
-@media (max-width: 768px) {
-    .board-wrapper {
-        width: 93vmin;
-        height: 93vmin;
-    }
-    .piece {
-        font-size: 11.5vmin;
-    }
-    .captured-area {
-        width: 93vmin;
-    }
-    .opening-display {
-        width: 93vmin;
-    }
+/* ============================================
+   MATCH TRANSITION
+   ============================================ */
+
+.match-transition {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    gap: 15px;
 }
 
-@media (max-width: 480px) {
-    .board-wrapper {
-        width: 96vmin;
-        height: 96vmin;
-    }
-    .piece {
-        font-size: 12vmin;
-    }
-    .captured-area {
-        width: 96vmin;
-    }
-    .opening-display {
-        width: 96vmin;
-    }
+.transition-text {
+    color: #ccc;
+    font-size: clamp(14px, 2vmin, 22px);
+    letter-spacing: 2px;
+}
+
+.countdown-number {
+    color: #ffd700;
+    font-size: clamp(40px, 8vmin, 80px);
+    font-weight: 700;
+    text-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
 }
