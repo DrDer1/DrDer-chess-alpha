@@ -316,30 +316,6 @@ body {
 }
 
 /* ============================================
-   SOUND BUTTON
-   ============================================ */
-
-.sound-btn {
-    position: fixed;
-    bottom: 15px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(255, 255, 255, 0.15);
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    font-size: 18px;
-    cursor: pointer;
-    z-index: 100;
-    font-family: inherit;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* ============================================
    MATCH TRANSITION
    ============================================ */
 
