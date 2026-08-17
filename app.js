@@ -148,10 +148,6 @@ function log(tag, msg) {
     }
 }
 
-// ============================================
-// نظام الصوت
-// ============================================
-
 function playSound(soundName) {
     if (!state.soundEnabled) return;
     try {
@@ -168,10 +164,6 @@ function playCaptureSound() { playSound('capture'); }
 function playCheckSound() { playSound('check'); }
 function playCheckmateSound() { playSound('checkmate'); }
 function playPromotionSound() { playSound('promote'); }
-
-// ============================================
-// التهيئة
-// ============================================
 
 function initEmptyBoard() {
     state.currentGame = new Chess();
@@ -201,14 +193,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 initEmptyBoard();
                 startSystem();
             }, 5000);
-        });
-    }
-    
-    var soundBtn = document.getElementById('toggleSound');
-    if (soundBtn) {
-        soundBtn.addEventListener('click', function() {
-            state.soundEnabled = !state.soundEnabled;
-            this.textContent = state.soundEnabled ? '🔊' : '🔇';
         });
     }
 });
@@ -242,10 +226,6 @@ function terminateAllWorkers() {
         }
     });
 }
-
-// ============================================
-// إنشاء Worker
-// ============================================
 
 function createWorker(name, path) {
     var worker;
@@ -329,10 +309,6 @@ function handleWorkerCrash(name) {
     state.workers[name] = createWorker(name, new URL('stockfish.' + name + '.js', window.location.href).href);
 }
 
-// ============================================
-// MultiPV Snapshot
-// ============================================
-
 function parseStockfishInfo(msg, worker) {
     if (worker.workerSearchId !== state.currentSearchId) return;
 
@@ -405,10 +381,6 @@ function getBestCandidates() {
     return arr;
 }
 
-// ============================================
-// bestmove
-// ============================================
-
 function handleBestmove(playerName, msg, worker) {
     if (!state.isMatchRunning) return;
     if (worker.workerSearchId !== state.currentSearchId) return;
@@ -463,10 +435,6 @@ function handleBestmove(playerName, msg, worker) {
     } catch(e) { scheduleNextMove(); }
 }
 
-// ============================================
-// إبراز الحركة
-// ============================================
-
 function highlightMove(move) {
     var from = move.from;
     var to = move.to;
@@ -485,10 +453,6 @@ function highlightMove(move) {
         }
     }
 }
-
-// ============================================
-// selectBestMove
-// ============================================
 
 function selectBestMove(playerName, bestMove, candidates, game) {
     var valid = [];
@@ -634,10 +598,6 @@ function simulateMove(moveStr, game) {
     return null;
 }
 
-// ============================================
-// التوقيت والجدولة
-// ============================================
-
 function scheduleNextMove() {
     if (state.nextMoveTimer) clearTimeout(state.nextMoveTimer);
     state.nextMoveTimer = setTimeout(function() { state.nextMoveTimer = null; makeNextMove(); }, 300);
@@ -714,10 +674,6 @@ function makeNextMove() {
         }
     }, SEARCH_TIMEOUT);
 }
-
-// ============================================
-// المباراة
-// ============================================
 
 function prepareMatch() {
     state.isMatchRunning = false;
@@ -831,10 +787,6 @@ function showMatchTransition() {
     }, 1000);
 }
 
-// ============================================
-// رسم الرقعة
-// ============================================
-
 function drawBoard() {
     if (!state.currentGame) return;
     var board = state.currentGame.board();
@@ -846,22 +798,42 @@ function drawBoard() {
         b: { p: '\u265F', n: '\u265E', b: '\u265D', r: '\u265C', q: '\u265B', k: '\u265A' }
     };
 
-    cb.innerHTML = '';
     var files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-    for (var r = 0; r < 8; r++) {
-        for (var c = 0; c < 8; c++) {
-            var sq = document.createElement('div');
-            var squareId = files[c] + (8 - r);
-            sq.className = 'square ' + ((r + c) % 2 === 0 ? 'light' : 'dark');
-            sq.setAttribute('data-square', squareId);
-            var p = board[r][c];
-            if (p) {
-                var pc = document.createElement('div');
-                pc.className = 'piece ' + (p.color === 'w' ? 'white' : 'black');
-                pc.textContent = icons[p.color][p.type];
-                sq.appendChild(pc);
+    
+    var squares = cb.querySelectorAll('.square');
+    
+    if (squares.length === 64) {
+        for (var r = 0; r < 8; r++) {
+            for (var c = 0; c < 8; c++) {
+                var sq = squares[r * 8 + c];
+                var p = board[r][c];
+                var oldPiece = sq.querySelector('.piece');
+                if (oldPiece) sq.removeChild(oldPiece);
+                if (p) {
+                    var pc = document.createElement('div');
+                    pc.className = 'piece ' + (p.color === 'w' ? 'white' : 'black');
+                    pc.textContent = icons[p.color][p.type];
+                    sq.appendChild(pc);
+                }
             }
-            cb.appendChild(sq);
+        }
+    } else {
+        cb.innerHTML = '';
+        for (var r2 = 0; r2 < 8; r2++) {
+            for (var c2 = 0; c2 < 8; c2++) {
+                var sq2 = document.createElement('div');
+                var squareId = files[c2] + (8 - r2);
+                sq2.className = 'square ' + ((r2 + c2) % 2 === 0 ? 'light' : 'dark');
+                sq2.setAttribute('data-square', squareId);
+                var p2 = board[r2][c2];
+                if (p2) {
+                    var pc2 = document.createElement('div');
+                    pc2.className = 'piece ' + (p2.color === 'w' ? 'white' : 'black');
+                    pc2.textContent = icons[p2.color][p2.type];
+                    sq2.appendChild(pc2);
+                }
+                cb.appendChild(sq2);
+            }
         }
     }
 }
