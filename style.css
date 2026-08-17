@@ -84,6 +84,27 @@ body {
     color: #fff;
 }
 
+/* ============================================
+   ALPHA VS BETA
+   ============================================ */
+
+.vs-display {
+    width: 850px;
+    max-width: 92vw;
+    text-align: center;
+    padding: 2px;
+}
+
+.vs-text {
+    color: #ffd700;
+    font-size: clamp(18px, 3vmin, 32px);
+    font-weight: 800;
+    letter-spacing: 4px;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.6), 0 0 40px rgba(255, 215, 0, 0.3);
+    user-select: none;
+    -webkit-user-select: none;
+}
+
 .board-wrapper {
     display: flex;
     align-items: center;
@@ -215,6 +236,9 @@ body {
     .opening-display {
         width: 93vmin;
     }
+    .vs-display {
+        width: 93vmin;
+    }
 }
 
 @media (max-width: 480px) {
@@ -229,6 +253,9 @@ body {
         width: 96vmin;
     }
     .opening-display {
+        width: 96vmin;
+    }
+    .vs-display {
         width: 96vmin;
     }
 }
