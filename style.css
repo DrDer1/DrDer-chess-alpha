@@ -134,48 +134,6 @@ body {
     flex-shrink: 0;
 }
 
-.players-bar {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 20px;
-    width: 100%;
-    flex-shrink: 0;
-}
-
-.player-info {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: clamp(14px, 2vmin, 20px);
-    color: #ccc;
-    font-weight: 600;
-}
-
-.dot {
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-}
-
-.white-dot {
-    background-color: #ffffff;
-}
-
-.black-dot {
-    background-color: #000000;
-    border: 2px solid #555;
-}
-
-.color-label {
-    color: #888;
-    font-size: clamp(11px, 1.5vmin, 15px);
-}
-
-.player-name {
-    color: #fff;
-}
-
 /* ============================================
    CHESSBOARD - ثابت في المنتصف
    ============================================ */
